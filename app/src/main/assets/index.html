@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>贪吃蛇</title>
+    <title>贪吃蛇 - 经典增强版</title>
     <style>
         * {
             margin: 0;
@@ -26,6 +26,7 @@
         .game-container {
             text-align: center;
             padding: 20px;
+            max-width: 100%;
         }
         
         h1 {
@@ -38,15 +39,16 @@
         .score-board {
             display: flex;
             justify-content: center;
-            gap: 30px;
+            gap: 15px;
             margin-bottom: 15px;
             color: #fff;
-            font-size: 18px;
+            font-size: 16px;
+            flex-wrap: wrap;
         }
         
         .score-item {
             background: rgba(255, 255, 255, 0.1);
-            padding: 8px 20px;
+            padding: 8px 16px;
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
@@ -80,7 +82,7 @@
             border-radius: 15px;
             background: linear-gradient(145deg, #00ff88, #00cc6a);
             color: #1a1a2e;
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
@@ -99,6 +101,88 @@
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
         
+        .btn-small {
+            width: 50px;
+            height: 50px;
+            font-size: 16px;
+        }
+        
+        /* 开始界面 */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        
+        .start-screen h1 {
+            font-size: 42px;
+            margin-bottom: 30px;
+        }
+        
+        .difficulty-select {
+            margin-bottom: 30px;
+        }
+        
+        .difficulty-btn {
+            padding: 15px 40px;
+            margin: 10px;
+            font-size: 18px;
+            width: 200px;
+        }
+        
+        .difficulty-btn.easy {
+            background: linear-gradient(145deg, #00ff88, #00cc6a);
+        }
+        
+        .difficulty-btn.normal {
+            background: linear-gradient(145deg, #ffd700, #ffaa00);
+        }
+        
+        .difficulty-btn.hard {
+            background: linear-gradient(145deg, #ff4444, #cc0000);
+        }
+        
+        .difficulty-btn.selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+        }
+        
+        /* 暂停菜单 */
+        .pause-menu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid #667eea;
+            text-align: center;
+            color: white;
+            display: none;
+            z-index: 150;
+        }
+        
+        .pause-menu h2 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 30px;
+        }
+        
+        .pause-menu .btn {
+            margin: 10px;
+            width: 150px;
+        }
+        
+        /* 游戏结束界面 */
         .game-over {
             position: fixed;
             top: 50%;
@@ -122,20 +206,108 @@
         
         .game-over p {
             font-size: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
+        }
+        
+        .combo-display {
+            position: fixed;
+            top: 20%;
+            right: 20px;
+            background: linear-gradient(145deg, #ff6b6b, #ee5a5a);
+            padding: 15px 25px;
+            border-radius: 30px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            display: none;
+            animation: pulse 0.5s ease-in-out infinite;
+            z-index: 50;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .power-up-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 50;
+        }
+        
+        .power-up-badge {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #fff;
+            border-radius: 10px;
+            padding: 8px 15px;
+            color: white;
+            font-size: 14px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .legend {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        
+        .legend-item {
+            display: inline-block;
+            margin: 5px 10px;
+        }
+        
+        .legend-color {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
         }
     </style>
 </head>
 <body>
+    <!-- 开始界面 -->
+    <div class="start-screen" id="startScreen">
+        <h1>🐍 贪吃蛇</h1>
+        <div class="difficulty-select">
+            <button class="btn difficulty-btn easy" onclick="selectDifficulty('easy')">简单</button>
+            <button class="btn difficulty-btn normal selected" onclick="selectDifficulty('normal')">正常</button>
+            <button class="btn difficulty-btn hard" onclick="selectDifficulty('hard')">困难</button>
+        </div>
+        <button class="btn difficulty-btn btn-secondary" onclick="startGameFromMenu()">开始游戏</button>
+        <div class="legend">
+            <div class="legend-item"><span class="legend-color" style="background:#ff6b6b"></span>普通 +10</div>
+            <div class="legend-item"><span class="legend-color" style="background:#a855f7"></span>稀有 +20</div>
+            <div class="legend-item"><span class="legend-color" style="background:#ffd700"></span>传奇 +50</div>
+        </div>
+    </div>
+
     <div class="game-container">
         <h1>🐍 贪吃蛇</h1>
         
         <div class="score-board">
             <div class="score-item">得分：<span id="score">0</span></div>
             <div class="score-item">最高：<span id="highScore">0</span></div>
+            <div class="score-item">难度：<span id="difficulty">正常</span></div>
         </div>
         
         <canvas id="gameCanvas" width="300" height="300"></canvas>
+        
+        <div class="combo-display" id="comboDisplay">连击 x<span id="comboCount">0</span>!</div>
+        
+        <div class="power-up-indicator" id="powerUpIndicator"></div>
         
         <div class="controls">
             <div class="control-row">
@@ -143,7 +315,7 @@
             </div>
             <div class="control-row">
                 <button class="btn" id="btnLeft">←</button>
-                <button class="btn btn-secondary" id="btnStart">开始</button>
+                <button class="btn btn-secondary btn-small" id="btnPause">暂停</button>
                 <button class="btn" id="btnRight">→</button>
             </div>
             <div class="control-row">
@@ -152,34 +324,90 @@
         </div>
     </div>
     
+    <!-- 暂停菜单 -->
+    <div class="pause-menu" id="pauseMenu">
+        <h2>游戏暂停</h2>
+        <button class="btn btn-secondary" onclick="resumeGame()">继续</button>
+        <button class="btn btn-secondary" onclick="restartGame()">重新开始</button>
+        <button class="btn" onclick="quitToMenu()">退出</button>
+    </div>
+    
+    <!-- 游戏结束界面 -->
     <div class="game-over" id="gameOver">
         <h2>游戏结束!</h2>
         <p>得分：<span id="finalScore">0</span></p>
-        <button class="btn btn-secondary" onclick="resetGame()">再来一局</button>
+        <p>最高分：<span id="finalHighScore">0</span></p>
+        <button class="btn btn-secondary" onclick="playAgain()">再来一局</button>
+        <button class="btn" onclick="quitToMenu()">返回主菜单</button>
     </div>
 
     <script>
-        // 游戏配置
+        // ==================== 游戏配置 ====================
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const gridSize = 15;
         const tileCount = canvas.width / gridSize;
         
-        // 游戏状态
+        // 难度配置
+        const difficultyConfig = {
+            easy: { speed: 200, powerUpRate: 0.4, name: '简单' },
+            normal: { speed: 150, powerUpRate: 0.25, name: '正常' },
+            hard: { speed: 100, powerUpRate: 0.15, name: '困难' }
+        };
+        
+        let currentDifficulty = 'normal';
+        
+        // 食物类型
+        const foodTypes = {
+            normal: { color: '#ff6b6b', score: 10, chance: 0.85, glow: '#ff6b6b' },
+            rare: { color: '#a855f7', score: 20, chance: 0.10, glow: '#a855f7' },
+            legendary: { color: '#ffd700', score: 50, chance: 0.05, glow: '#ffd700', disappearTime: 3000 }
+        };
+        
+        // 道具类型
+        const powerUpTypes = {
+            speed: { color: '#00ffff', effect: '加速', duration: 5000, icon: '⚡' },
+            slow: { color: '#00ff00', effect: '减速', duration: 5000, icon: '🐢' },
+            ghost: { color: '#ffffff', effect: '穿墙', duration: 5000, icon: '👻' },
+            shrink: { color: '#ff69b4', effect: '缩短', duration: 0, icon: '✂️' }
+        };
+        
+        // ==================== 游戏状态 ====================
         let snake = [];
-        let food = {};
+        let foods = [];
+        let powerUps = [];
         let direction = 'right';
         let nextDirection = 'right';
         let score = 0;
         let highScore = localStorage.getItem('snakeHighScore') || 0;
         let gameLoop = null;
-        let gameSpeed = 150;
+        let baseGameSpeed = 150;
+        let currentGameSpeed = 150;
         let isGameRunning = false;
+        let isPaused = false;
+        let combo = 0;
+        let lastEatTime = 0;
+        let activePowerUps = [];
+        let isWallPassThrough = false;
         
-        // 初始化显示最高分
         document.getElementById('highScore').textContent = highScore;
         
-        // 初始化游戏
+        // ==================== 游戏控制 ====================
+        function selectDifficulty(diff) {
+            currentDifficulty = diff;
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelector(`.difficulty-btn.${diff}`).classList.add('selected');
+            document.getElementById('difficulty').textContent = difficultyConfig[diff].name;
+        }
+        
+        function startGameFromMenu() {
+            document.getElementById('startScreen').style.display = 'none';
+            initGame();
+            startGame();
+        }
+        
         function initGame() {
             snake = [
                 {x: 5, y: 10},
@@ -189,27 +417,139 @@
             direction = 'right';
             nextDirection = 'right';
             score = 0;
+            combo = 0;
+            foods = [];
+            powerUps = [];
+            activePowerUps = [];
+            isWallPassThrough = false;
+            baseGameSpeed = difficultyConfig[currentDifficulty].speed;
+            currentGameSpeed = baseGameSpeed;
             document.getElementById('score').textContent = score;
+            document.getElementById('comboDisplay').style.display = 'none';
+            updatePowerUpIndicator();
             placeFood();
         }
         
-        // 放置食物
         function placeFood() {
+            const rand = Math.random();
+            let type = 'normal';
+            if (rand < foodTypes.legendary.chance) type = 'legendary';
+            else if (rand < foodTypes.rare.chance + foodTypes.legendary.chance) type = 'rare';
+            
+            let newFood;
             do {
-                food = {
+                newFood = {
                     x: Math.floor(Math.random() * tileCount),
-                    y: Math.floor(Math.random() * tileCount)
+                    y: Math.floor(Math.random() * tileCount),
+                    type: type
                 };
-            } while (snake.some(segment => segment.x === food.x && segment.y === food.y));
+            } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+            
+            foods.push(newFood);
+            
+            // 传奇食物会在 3 秒后消失
+            if (type === 'legendary') {
+                setTimeout(() => {
+                    const index = foods.findIndex(f => f === newFood);
+                    if (index !== -1) foods.splice(index, 1);
+                }, foodTypes.legendary.disappearTime);
+            }
+            
+            // 随机生成道具
+            if (Math.random() < difficultyConfig[currentDifficulty].powerUpRate) {
+                placePowerUp();
+            }
         }
         
-        // 绘制游戏
+        function placePowerUp() {
+            const types = Object.keys(powerUpTypes);
+            const type = types[Math.floor(Math.random() * types.length)];
+            
+            let newPowerUp;
+            do {
+                newPowerUp = {
+                    x: Math.floor(Math.random() * tileCount),
+                    y: Math.floor(Math.random() * tileCount),
+                    type: type
+                };
+            } while (
+                snake.some(segment => segment.x === newPowerUp.x && segment.y === newPowerUp.y) ||
+                foods.some(food => food.x === newPowerUp.x && food.y === newPowerUp.y)
+            );
+            
+            powerUps.push(newPowerUp);
+            
+            // 道具 8 秒后消失
+            setTimeout(() => {
+                const index = powerUps.findIndex(p => p === newPowerUp);
+                if (index !== -1) powerUps.splice(index, 1);
+            }, 8000);
+        }
+        
+        function activatePowerUp(type) {
+            const config = powerUpTypes[type];
+            
+            if (type === 'shrink') {
+                // 立即缩短
+                for (let i = 0; i < 3 && snake.length > 2; i++) {
+                    snake.pop();
+                }
+            } else {
+                // 持续性效果
+                activePowerUps.push({ type, endTime: Date.now() + config.duration });
+                
+                if (type === 'speed') {
+                    currentGameSpeed = baseGameSpeed * 0.8;
+                    clearInterval(gameLoop);
+                    gameLoop = setInterval(gameStep, currentGameSpeed);
+                } else if (type === 'slow') {
+                    currentGameSpeed = baseGameSpeed * 1.2;
+                    clearInterval(gameLoop);
+                    gameLoop = setInterval(gameStep, currentGameSpeed);
+                } else if (type === 'ghost') {
+                    isWallPassThrough = true;
+                }
+                
+                updatePowerUpIndicator();
+                
+                // 效果结束后恢复
+                setTimeout(() => {
+                    activePowerUps = activePowerUps.filter(p => p.type !== type);
+                    if (type === 'speed' || type === 'slow') {
+                        currentGameSpeed = baseGameSpeed;
+                        clearInterval(gameLoop);
+                        gameLoop = setInterval(gameStep, currentGameSpeed);
+                    } else if (type === 'ghost') {
+                        isWallPassThrough = false;
+                    }
+                    updatePowerUpIndicator();
+                }, config.duration);
+            }
+        }
+        
+        function updatePowerUpIndicator() {
+            const container = document.getElementById('powerUpIndicator');
+            const now = Date.now();
+            activePowerUps = activePowerUps.filter(p => p.endTime > now);
+            
+            if (activePowerUps.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            container.innerHTML = activePowerUps.map(p => {
+                const config = powerUpTypes[p.type];
+                const remaining = Math.ceil((p.endTime - now) / 1000);
+                return `<div class="power-up-badge">${config.icon} ${remaining}s</div>`;
+            }).join('');
+        }
+        
         function draw() {
             // 清空画布
             ctx.fillStyle = '#0a0a1a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // 绘制网格（可选）
+            // 绘制网格
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
             for (let i = 0; i < tileCount; i++) {
                 ctx.beginPath();
@@ -234,11 +574,9 @@
                 );
                 
                 if (index === 0) {
-                    // 蛇头
                     gradient.addColorStop(0, '#00ff88');
                     gradient.addColorStop(1, '#00cc6a');
                 } else {
-                    // 蛇身
                     gradient.addColorStop(0, '#00dd77');
                     gradient.addColorStop(1, '#00aa55');
                 }
@@ -285,44 +623,47 @@
             });
             
             // 绘制食物
-            const foodGradient = ctx.createRadialGradient(
-                food.x * gridSize + gridSize/2,
-                food.y * gridSize + gridSize/2,
-                0,
-                food.x * gridSize + gridSize/2,
-                food.y * gridSize + gridSize/2,
-                gridSize/2
-            );
-            foodGradient.addColorStop(0, '#ff6b6b');
-            foodGradient.addColorStop(1, '#ee5a5a');
+            foods.forEach(food => {
+                const config = foodTypes[food.type];
+                const foodGradient = ctx.createRadialGradient(
+                    food.x * gridSize + gridSize/2,
+                    food.y * gridSize + gridSize/2,
+                    0,
+                    food.x * gridSize + gridSize/2,
+                    food.y * gridSize + gridSize/2,
+                    gridSize/2
+                );
+                foodGradient.addColorStop(0, config.color);
+                foodGradient.addColorStop(1, config.color);
+                
+                ctx.fillStyle = foodGradient;
+                ctx.shadowColor = config.glow;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(
+                    food.x * gridSize + gridSize/2,
+                    food.y * gridSize + gridSize/2,
+                    gridSize/2 - 2,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
             
-            ctx.fillStyle = foodGradient;
-            ctx.beginPath();
-            ctx.arc(
-                food.x * gridSize + gridSize/2,
-                food.y * gridSize + gridSize/2,
-                gridSize/2 - 2,
-                0,
-                Math.PI * 2
-            );
-            ctx.fill();
-            
-            // 食物光晕
-            ctx.shadowColor = '#ff6b6b';
-            ctx.shadowBlur = 10;
-            ctx.beginPath();
-            ctx.arc(
-                food.x * gridSize + gridSize/2,
-                food.y * gridSize + gridSize/2,
-                gridSize/2 - 2,
-                0,
-                Math.PI * 2
-            );
-            ctx.fill();
-            ctx.shadowBlur = 0;
+            // 绘制道具
+            powerUps.forEach(powerUp => {
+                const config = powerUpTypes[powerUp.type];
+                ctx.fillStyle = config.color;
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(config.icon, 
+                    powerUp.x * gridSize + gridSize/2, 
+                    powerUp.y * gridSize + gridSize/2);
+            });
         }
         
-        // 更新游戏状态
         function update() {
             direction = nextDirection;
             
@@ -335,40 +676,81 @@
                 case 'right': head.x++; break;
             }
             
-            // 检查碰撞
-            if (head.x < 0 || head.x >= tileCount || 
-                head.y < 0 || head.y >= tileCount ||
-                snake.some(segment => segment.x === head.x && segment.y === head.y)) {
-                gameOver();
-                return;
+            // 检查穿墙模式
+            if (isWallPassThrough) {
+                if (head.x < 0) head.x = tileCount - 1;
+                if (head.x >= tileCount) head.x = 0;
+                if (head.y < 0) head.y = tileCount - 1;
+                if (head.y >= tileCount) head.y = 0;
+            } else {
+                // 检查碰撞
+                if (head.x < 0 || head.x >= tileCount || 
+                    head.y < 0 || head.y >= tileCount ||
+                    snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                    gameOver();
+                    return;
+                }
             }
             
             snake.unshift(head);
             
             // 检查是否吃到食物
-            if (head.x === food.x && head.y === food.y) {
-                score += 10;
+            const foodIndex = foods.findIndex(f => f.x === head.x && f.y === head.y);
+            if (foodIndex !== -1) {
+                const food = foods[foodIndex];
+                const config = foodTypes[food.type];
+                
+                // 连击系统
+                const now = Date.now();
+                if (now - lastEatTime < 3000) {
+                    combo++;
+                    if (combo >= 2) {
+                        document.getElementById('comboDisplay').style.display = 'block';
+                        document.getElementById('comboCount').textContent = combo;
+                    }
+                } else {
+                    combo = 0;
+                    document.getElementById('comboDisplay').style.display = 'none';
+                }
+                lastEatTime = now;
+                
+                // 计算得分（包含连击加成）
+                const comboBonus = combo >= 2 ? 1 + (combo - 1) * 0.2 : 1;
+                score += Math.floor(config.score * comboBonus);
                 document.getElementById('score').textContent = score;
+                
+                foods.splice(foodIndex, 1);
                 placeFood();
                 
                 // 加速
-                if (gameSpeed > 80) {
-                    gameSpeed -= 2;
+                if (currentGameSpeed > 80 && !activePowerUps.some(p => p.type === 'speed' || p.type === 'slow')) {
+                    currentGameSpeed -= 2;
                     clearInterval(gameLoop);
-                    gameLoop = setInterval(gameStep, gameSpeed);
+                    gameLoop = setInterval(gameStep, currentGameSpeed);
                 }
             } else {
                 snake.pop();
             }
+            
+            // 检查是否吃到道具
+            const powerUpIndex = powerUps.findIndex(p => p.x === head.x && p.y === head.y);
+            if (powerUpIndex !== -1) {
+                const powerUp = powerUps[powerUpIndex];
+                activatePowerUp(powerUp.type);
+                powerUps.splice(powerUpIndex, 1);
+            }
+            
+            // 更新道具指示器
+            updatePowerUpIndicator();
         }
         
-        // 游戏步骤
         function gameStep() {
-            update();
-            draw();
+            if (!isPaused) {
+                update();
+                draw();
+            }
         }
         
-        // 游戏结束
         function gameOver() {
             clearInterval(gameLoop);
             isGameRunning = false;
@@ -380,34 +762,56 @@
             }
             
             document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalHighScore').textContent = highScore;
             document.getElementById('gameOver').style.display = 'block';
         }
         
-        // 重置游戏
-        function resetGame() {
-            document.getElementById('gameOver').style.display = 'none';
-            gameSpeed = 150;
-            initGame();
-            draw();
-            startGame();
-        }
-        
-        // 开始游戏
         function startGame() {
             if (isGameRunning) return;
             isGameRunning = true;
-            document.getElementById('btnStart').textContent = '进行中';
-            gameLoop = setInterval(gameStep, gameSpeed);
+            isPaused = false;
+            document.getElementById('btnPause').textContent = '暂停';
+            gameLoop = setInterval(gameStep, currentGameSpeed);
         }
         
-        // 停止游戏
-        function stopGame() {
+        function togglePause() {
+            if (!isGameRunning) return;
+            
+            isPaused = !isPaused;
+            document.getElementById('btnPause').textContent = isPaused ? '继续' : '暂停';
+            document.getElementById('pauseMenu').style.display = isPaused ? 'block' : 'none';
+        }
+        
+        function resumeGame() {
+            isPaused = false;
+            document.getElementById('pauseMenu').style.display = 'none';
+            document.getElementById('btnPause').textContent = '暂停';
+        }
+        
+        function restartGame() {
+            document.getElementById('pauseMenu').style.display = 'none';
+            document.getElementById('gameOver').style.display = 'none';
+            currentGameSpeed = baseGameSpeed;
+            initGame();
+            startGame();
+        }
+        
+        function playAgain() {
+            document.getElementById('gameOver').style.display = 'none';
+            currentGameSpeed = baseGameSpeed;
+            initGame();
+            startGame();
+        }
+        
+        function quitToMenu() {
             clearInterval(gameLoop);
             isGameRunning = false;
-            document.getElementById('btnStart').textContent = '开始';
+            isPaused = false;
+            document.getElementById('pauseMenu').style.display = 'none';
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'flex';
         }
         
-        // 改变方向
         function changeDirection(newDirection) {
             const opposites = {
                 'up': 'down',
@@ -427,14 +831,7 @@
         document.getElementById('btnLeft').addEventListener('click', () => changeDirection('left'));
         document.getElementById('btnRight').addEventListener('click', () => changeDirection('right'));
         
-        document.getElementById('btnStart').addEventListener('click', () => {
-            if (isGameRunning) {
-                stopGame();
-            } else {
-                if (snake.length === 0) initGame();
-                startGame();
-            }
-        });
+        document.getElementById('btnPause').addEventListener('click', togglePause);
         
         // 键盘控制
         document.addEventListener('keydown', (e) => {
@@ -444,11 +841,11 @@
                 case 'ArrowLeft': case 'a': case 'A': changeDirection('left'); break;
                 case 'ArrowRight': case 'd': case 'D': changeDirection('right'); break;
                 case ' ': 
-                    if (isGameRunning) stopGame();
-                    else {
-                        if (snake.length === 0) initGame();
-                        startGame();
-                    }
+                    if (isGameRunning) togglePause();
+                    else if (document.getElementById('startScreen').style.display !== 'none') startGameFromMenu();
+                    break;
+                case 'Escape':
+                    if (isGameRunning) togglePause();
                     break;
             }
         });
