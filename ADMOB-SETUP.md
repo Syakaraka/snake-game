@@ -1,19 +1,19 @@
-# 🎬 穿山甲广告接入指南
+# 🎬 优量汇广告接入指南
 
 ## ⚠️ 重要：上线前必须修改的配置
 
-### 1. 创建穿山甲开发者账号
+### 1. 注册腾讯优量汇开发者账号
 
-1. 访问：https://partner.oceanengine.com/
+1. 访问：https://e.qq.com/
 2. 注册账号（需要手机号）
 3. 完成实名认证（身份证）
-4. 创建应用
+4. 创建应用（选择"移动应用" → "Android"）
 5. 创建广告位（选择"激励视频"类型）
 
 ### 2. 获取配置信息
 
 创建应用后，你会获得：
-- **App ID**：应用唯一标识
+- **App ID**：应用唯一标识（数字）
 - **Ad Slot ID**：广告位 ID
 
 ### 3. 修改配置
@@ -21,43 +21,21 @@
 编辑 `app/src/main/java/com/snake/game/MainActivity.java`：
 
 ```java
-// 第 20 行：替换测试 App ID 为你的真实 App ID
-.setAppId("5093868") // 改为你的 App ID
+// 第 22 行：替换为你的 App ID
+private int appId = "1109652815"; // 改为你的 App ID
 
-// 第 17 行：替换测试广告位 ID
-private String rewardAdSlotId = "887249b0"; // 改为你的 Ad Slot ID
-
-// 第 23 行：上线前关闭调试模式
-.setDebugBuild(true) // 改为 false
+// 第 21 行：替换为你的广告位 ID
+private String adSlotId = "887249b0"; // 改为你的 Ad Slot ID
 ```
 
-### 4. 添加测试设备 ID（开发测试用）
+### 4. 测试设备 ID
 
-1. 在穿山甲后台，将你的设备 ID 加入白名单
-2. 或者在代码中设置：
-```java
-private static final String TEST_DEVICE_ID = "你的设备 ID";
-```
+在优量汇后台，将你的设备 ID 加入白名单，否则会看不到广告。
 
-### 5. 修改 AndroidManifest.xml
-
-确保以下权限已添加（已完成）：
-- INTERNET
-- ACCESS_NETWORK_STATE
-- ACCESS_WIFI_STATE
-- WRITE_EXTERNAL_STORAGE
-- READ_PHONE_STATE
-
-### 6. 测试广告
-
-- 测试时会显示"测试广告"标识
-- 正式环境需移除测试标识
-- 每次广告展示间隔至少 30 秒
-
-### 7. 收益提现
+### 5. 收益提现
 
 - 满 100 元可提现
-- 每月 10 日结算上月收益
+- 每月 15 日结算上月收益
 - 打款到银行卡或支付宝
 
 ---
@@ -72,7 +50,7 @@ private static final String TEST_DEVICE_ID = "你的设备 ID";
 ### 可扩展
 - 看广告双倍分数
 - 看广告获得道具
-- 看广告继续游戏（无限复活）
+- 看广告继续游戏
 
 ---
 
@@ -80,9 +58,9 @@ private static final String TEST_DEVICE_ID = "你的设备 ID";
 
 | 日活用户 | 广告观看率 | 日收益估算 |
 |----------|------------|------------|
-| 1,000    | 20%        | 50-150 元  |
-| 5,000    | 20%        | 250-750 元 |
-| 10,000   | 20%        | 500-1500 元|
+| 1,000    | 20%        | 30-100 元  |
+| 5,000    | 20%        | 150-500 元 |
+| 10,000   | 20%        | 300-1000 元|
 
 *注：实际收益取决于广告填充率、用户质量等因素*
 
@@ -97,8 +75,8 @@ private static final String TEST_DEVICE_ID = "你的设备 ID";
 
 ---
 
-## 📞 穿山甲官方支持
+## 📞 优量汇官方支持
 
-- 文档：https://www.csjplatform.com/
-- 客服：400-140-2108
-- 邮箱：csj_sdk@bytedance.com
+- 文档：https://qzs.gdtimg.com/union/res/union_mob/docs/index.html
+- 客服：400-991-6099
+- 邮箱：gdt@tencent.com

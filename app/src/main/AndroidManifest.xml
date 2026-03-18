@@ -20,15 +20,9 @@
         android:theme="@style/Theme.SnakeGame"
         android:usesCleartextTraffic="true">
         
-        <!-- 穿山甲广告 Activity -->
+        <!-- 优量汇广告 Activity -->
         <activity
-            android:name="com.bytedance.sdk.openadsdk.TTAdDislike"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:exported="false" />
-        
-        <activity
-            android:name="com.bytedance.sdk.openadsdk.reward.RewardVideoActivity"
+            android:name="com.qq.e.ads.ADActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:exported="false" />

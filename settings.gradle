@@ -11,8 +11,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // 穿山甲 Maven 仓库
-        maven { url 'https://artifact.bytedance.com/repository/Pangle/' }
+        // 优量汇 Maven 仓库
+        maven { url 'https://jcenter.bintray.com/' }
     }
 }
 
