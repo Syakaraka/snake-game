@@ -337,6 +337,7 @@
         <h2>游戏结束!</h2>
         <p>得分：<span id="finalScore">0</span></p>
         <p>最高分：<span id="finalHighScore">0</span></p>
+        <button class="btn btn-secondary" id="reviveBtn" onclick="watchAdToRevive()" style="display:none;">🎬 看广告复活</button>
         <button class="btn btn-secondary" onclick="playAgain()">再来一局</button>
         <button class="btn" onclick="quitToMenu()">返回主菜单</button>
     </div>
@@ -751,6 +752,8 @@
             }
         }
         
+        let canRevive = true;
+        
         function gameOver() {
             clearInterval(gameLoop);
             isGameRunning = false;
@@ -763,6 +766,15 @@
             
             document.getElementById('finalScore').textContent = score;
             document.getElementById('finalHighScore').textContent = highScore;
+            
+            // 显示看广告复活按钮（如果还有复活机会）
+            const reviveBtn = document.getElementById('reviveBtn');
+            if (canRevive && typeof AdInterface !== 'undefined') {
+                reviveBtn.style.display = 'inline-block';
+            } else {
+                reviveBtn.style.display = 'none';
+            }
+            
             document.getElementById('gameOver').style.display = 'block';
         }
         
@@ -798,9 +810,36 @@
         
         function playAgain() {
             document.getElementById('gameOver').style.display = 'none';
+            canRevive = true; // 重置复活机会
             currentGameSpeed = baseGameSpeed;
             initGame();
             startGame();
+        }
+        
+        function watchAdToRevive() {
+            if (typeof AdInterface !== 'undefined') {
+                AdInterface.showRewardAd('revive');
+            } else {
+                alert('广告功能初始化中，请稍后');
+            }
+        }
+        
+        // 奖励回调（从原生调用）
+        function onRewardGranted(rewardType) {
+            if (rewardType === 'revive') {
+                // 复活：恢复游戏
+                document.getElementById('gameOver').style.display = 'none';
+                canRevive = false; // 每局只能复活一次
+                isGameRunning = true;
+                gameLoop = setInterval(gameStep, currentGameSpeed);
+            } else if (rewardType === 'doubleScore') {
+                // 双倍分数
+                score *= 2;
+                document.getElementById('score').textContent = score;
+            } else if (rewardType === 'powerup') {
+                // 随机道具
+                placeFood(); // 简化处理，直接生成食物
+            }
         }
         
         function quitToMenu() {
