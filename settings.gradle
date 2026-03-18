@@ -11,6 +11,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // 优量汇 Maven 仓库
+        maven { url 'https://sdk.e.qq.com/' }
     }
 }
 

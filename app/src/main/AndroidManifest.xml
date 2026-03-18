@@ -20,6 +20,13 @@
         android:theme="@style/Theme.SnakeGame"
         android:usesCleartextTraffic="true">
         
+        <!-- 优量汇广告 Activity -->
+        <activity
+            android:name="com.qq.e.ads.ADActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:exported="false" />
+        
 
         
         <activity
