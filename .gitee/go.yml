@@ -1,0 +1,31 @@
+version: '1.0'
+name: build-android-apk
+stages:
+  - stage:
+      name: build
+      jobs:
+        - job:
+            name: build-apk
+            runs-on: ubuntu-latest
+            steps:
+              - step:
+                  name: checkout
+                  uses: checkout@v1
+              - step:
+                  name: setup-java
+                  uses: setup-java@v1
+                  with:
+                    java-version: 17
+                    distribution: temurin
+              - step:
+                  name: gradle-build
+                  script:
+                    - chmod +x gradlew
+                    - ./gradlew assembleDebug --no-daemon
+              - step:
+                  name: upload-apk
+                  uses: actions/upload-artifact@v4
+                  with:
+                    name: snake-game-apk
+                    path: app/build/outputs/apk/debug/app-debug.apk
+                    retention-days: 30
