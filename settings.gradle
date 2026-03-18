@@ -12,7 +12,9 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         // 优量汇 Maven 仓库
-        maven { url 'https://sdk.e.qq.com/' }
+        maven { url 'https://artifact.bytedance.com/repository/Pangle/' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
     }
 }
 

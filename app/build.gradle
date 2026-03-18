@@ -44,6 +44,6 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     
-    // 优量汇广告 SDK
-    implementation 'com.qq.e.union:union:4.590.1460'
+    // 优量汇广告 SDK (使用最新版本)
+    implementation 'com.qq.e.union:union:4.592.1462'
 }
