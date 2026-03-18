@@ -45,5 +45,5 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     
     // 穿山甲广告 SDK
-    implementation 'com.pangle.cn:mediation-sdk:6.2.0.5'
+    implementation 'com.pangle.cn:mediation-sdk:6.3.0.8'
 }
