@@ -12,7 +12,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         // 优量汇 Maven 仓库
-        maven { url 'https://jcenter.bintray.com/' }
+        maven { url 'https://sdk.e.qq.com/' }
     }
 }
 
