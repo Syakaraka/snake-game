@@ -13,6 +13,6 @@
     <path
         android:fillColor="#00ff88"
         android:pathData="M30,60 Q54,20 78,60 Q90,80 78,90 Q54,100 30,90 Q18,80 30,60"/>
-    <circle android:centerX="45" android:centerY="55" android:radius="4" android:fillColor="#1a1a2e"/>
-    <circle android:centerX="63" android:centerY="55" android:radius="4" android:fillColor="#1a1a2e"/>
+    <circle android:centerX="45" android:centerY="55" android:radius="4dp" android:fillColor="#1a1a2e"/>
+    <circle android:centerX="63" android:centerY="55" android:radius="4dp" android:fillColor="#1a1a2e"/>
 </vector>
