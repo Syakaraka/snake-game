@@ -11,20 +11,16 @@ import android.util.Log;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.android.gms.ads.AdError;
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.FullScreenContentCallback;
-import com.google.android.gms.ads.LoadAdError;
-import com.google.android.gms.ads.MobileAds;
-import com.google.android.gms.ads.rewarded.RewardItem;
-import com.google.android.gms.ads.rewarded.RewardedAd;
-import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
+import com.bytedance.sdk.openadsdk.*;
+import com.bytedance.sdk.openadsdk.reward.RewardVideoAd;
 
 public class MainActivity extends AppCompatActivity {
     
     private WebView webView;
-    private RewardedAd rewardedAd;
-    private String adUnitId = "ca-app-pub-3940256099942544/5224354917"; // 测试广告位 ID
+    private TTAdSdk ttAdSdk;
+    private RewardVideoAd rewardVideoAd;
+    private String adSlotId = "946061972"; // 测试广告位 ID
+    private String appId = "5093868"; // 测试 App ID
     private boolean isAdReady = false;
     private boolean isWatchingAd = false;
     private String pendingReward = null;
@@ -33,10 +29,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // 初始化 AdMob
-        MobileAds.initialize(this, initializationStatus -> {
-            Log.d("AdMob", "Initialized: " + initializationStatus);
-        });
+        // 初始化穿山甲 SDK
+        ttAdSdk = TTAdSdk.init(this, new TTAdSdkConfig.Builder()
+                .setAppId(appId)
+                .setUseTextureView(true)
+                .setAllowShowNotify(true)
+                .setDebugBuild(true)
+                .build());
+        
+        TTAdSdk.getAdManager().requestPermissionIfNecessary(this);
         
         webView = new WebView(this);
         setContentView(webView);
@@ -59,43 +60,79 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void loadRewardAd() {
-        AdRequest adRequest = new AdRequest.Builder().build();
+        if (ttAdSdk == null) return;
         
-        RewardedAd.load(this, adUnitId, adRequest, new RewardedAdLoadCallback() {
+        TTAdNative rewardVideoAdNative = ttAdSdk.createAdNative(this);
+        
+        AdSlot adSlot = new AdSlot.Builder()
+                .setCodeId(adSlotId)
+                .setSupportDeepLink(true)
+                .setRewardName("金币")
+                .setRewardAmount(10)
+                .setUserID("user123")
+                .setMediaExtra("extra_data")
+                .setOrientation(TTAdConstant.VERTICAL)
+                .build();
+        
+        rewardVideoAdNative.loadRewardVideoAd(adSlot, new TTAdNative.RewardVideoAdListener() {
             @Override
-            public void onAdLoaded(RewardedAd ad) {
-                Log.d("AdMob", "Ad loaded");
-                rewardedAd = ad;
+            public void onError(int code, String message) {
+                Log.e("TTAdSdk", "Error: " + code + " - " + message);
+                isAdReady = false;
+            }
+            
+            @Override
+            public void onRewardVideoAdLoad(RewardVideoAd ad) {
+                Log.d("TTAdSdk", "Reward video ad loaded");
+                rewardVideoAd = ad;
                 isAdReady = true;
                 
-                rewardedAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                rewardVideoAd.setRewardAdInteractionListener(new RewardVideoAd.RewardVideoAdInteractionListener() {
                     @Override
                     public void onAdShow() {
-                        Log.d("AdMob", "Ad showing");
+                        Log.d("TTAdSdk", "Ad showing");
                         isWatchingAd = true;
                     }
                     
                     @Override
-                    public void onAdDismissedFullScreenContent() {
-                        Log.d("AdMob", "Ad dismissed");
+                    public void onAdVideoBarClick() {
+                        Log.d("TTAdSdk", "Ad bar clicked");
+                    }
+                    
+                    @Override
+                    public void onAdClose() {
+                        Log.d("TTAdSdk", "Ad closed");
                         isWatchingAd = false;
                         isAdReady = false;
                         new Handler(Looper.getMainLooper()).postDelayed(MainActivity.this::loadRewardAd, 3000);
                     }
                     
                     @Override
-                    public void onAdFailedToShowFullScreenContent(AdError adError) {
-                        Log.e("AdMob", "Ad failed to show: " + adError.getMessage());
+                    public void onVideoComplete() {
+                        Log.d("TTAdSdk", "Video complete");
+                        if (pendingReward != null) {
+                            grantReward(pendingReward);
+                            pendingReward = null;
+                        }
+                    }
+                    
+                    @Override
+                    public void onVideoError() {
+                        Log.e("TTAdSdk", "Video error");
                         isWatchingAd = false;
-                        isAdReady = false;
+                    }
+                    
+                    @Override
+                    public void onAdShowedByOther() {
+                        Log.d("TTAdSdk", "Ad showed by other");
+                    }
+                    
+                    @Override
+                    public void onSkippedVideo() {
+                        Log.d("TTAdSdk", "Video skipped");
+                        isWatchingAd = false;
                     }
                 });
-            }
-            
-            @Override
-            public void onAdFailedToLoad(LoadAdError loadAdError) {
-                Log.e("AdMob", "Ad failed to load: " + loadAdError.getMessage());
-                isAdReady = false;
             }
         });
     }
@@ -109,15 +146,9 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void showRewardAd(String rewardType) {
             runOnUiThread(() -> {
-                if (isAdReady && !isWatchingAd && rewardedAd != null) {
+                if (isAdReady && !isWatchingAd && rewardVideoAd != null) {
                     pendingReward = rewardType;
-                    rewardedAd.show(MainActivity.this, rewardItem -> {
-                        Log.d("AdMob", "Reward earned: " + rewardItem.getAmount() + " " + rewardItem.getType());
-                        if (pendingReward != null) {
-                            grantReward(pendingReward);
-                            pendingReward = null;
-                        }
-                    });
+                    rewardVideoAd.showRewardVideoAd(MainActivity.this, RewardVideoAd.RitScenes.CUSTOMIZE_SCENES, "scenes_test");
                 } else {
                     Toast.makeText(MainActivity.this, "广告加载中，请稍后", Toast.LENGTH_SHORT).show();
                 }

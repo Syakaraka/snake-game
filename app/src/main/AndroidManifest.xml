@@ -20,10 +20,18 @@
         android:theme="@style/Theme.SnakeGame"
         android:usesCleartextTraffic="true">
         
-        <!-- AdMob App ID (测试) -->
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+        <!-- 穿山甲广告 Activity -->
+        <activity
+            android:name="com.bytedance.sdk.openadsdk.TTAdDislike"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:exported="false" />
+        
+        <activity
+            android:name="com.bytedance.sdk.openadsdk.reward.RewardVideoActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:exported="false" />
         
         <activity
             android:name=".MainActivity"
