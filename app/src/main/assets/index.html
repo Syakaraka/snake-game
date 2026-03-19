@@ -51,6 +51,16 @@
             padding: 8px 16px;
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.2s;
+        }
+        
+        .score-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
+        }
+        
+        .score-item:active {
+            transform: scale(0.95);
         }
         
         #gameCanvas {
@@ -63,28 +73,29 @@
         }
         
         .controls {
-            margin-top: 25px;
+            margin-top: 30px;
             display: grid;
-            grid-template-columns: repeat(3, 60px);
-            grid-template-rows: repeat(3, 60px);
-            gap: 12px;
+            grid-template-columns: repeat(3, 65px);
+            grid-template-rows: repeat(3, 65px);
+            gap: 16px;
             justify-content: center;
             align-items: center;
         }
         
         .btn {
-            width: 60px;
-            height: 60px;
+            width: 65px;
+            height: 65px;
             border: none;
             border-radius: 15px;
             background: linear-gradient(145deg, #00ff88, #00cc6a);
             color: #1a1a2e;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
             transition: all 0.1s;
             -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         
         .btn:active {
@@ -373,6 +384,7 @@
             <div class="score-item">最高：<span id="highScore">0</span></div>
             <div class="score-item">难度：<span id="difficulty">正常</span></div>
             <div class="score-item">速度：<span id="gameSpeed">150</span>ms</div>
+            <div class="score-item" style="cursor: pointer;" onclick="openSettings()" title="设置">⚙️</div>
         </div>
         
         <canvas id="gameCanvas" width="300" height="300"></canvas>
@@ -392,10 +404,10 @@
             <button class="btn btn-secondary" id="btnPause" style="font-size: 14px;">暂停</button>
             <button class="btn" id="btnRight">→</button>
             
-            <!-- 第三行：下、设置 -->
+            <!-- 第三行：下 -->
             <div></div>
             <button class="btn" id="btnDown">↓</button>
-            <button class="btn btn-secondary" onclick="openSettings()" style="font-size: 16px;">⚙️</button>
+            <div></div>
         </div>
     </div>
     
@@ -696,11 +708,11 @@
             ctx.globalAlpha = 1.0;
         }
         
-        // 难度配置
+        // 难度配置（速度：ms/帧，数值越大越慢）
         const difficultyConfig = {
-            easy: { speed: 200, powerUpRate: 0.4, name: '简单' },
-            normal: { speed: 150, powerUpRate: 0.25, name: '正常' },
-            hard: { speed: 100, powerUpRate: 0.15, name: '困难' }
+            easy: { speed: 250, powerUpRate: 0.4, name: '简单' },
+            normal: { speed: 180, powerUpRate: 0.25, name: '正常' },
+            hard: { speed: 120, powerUpRate: 0.15, name: '困难' }
         };
         
         let currentDifficulty = 'normal';
@@ -1336,9 +1348,10 @@
             }
         });
         
-        // 触摸滑动控制
+        // 触摸滑动控制（优化灵敏度）
         let touchStartX = 0;
         let touchStartY = 0;
+        const SWIPE_THRESHOLD = 50; // 增加滑动阈值，减少误触
         
         canvas.addEventListener('touchstart', (e) => {
             touchStartX = e.touches[0].clientX;
@@ -1357,12 +1370,17 @@
             const dx = touchEndX - touchStartX;
             const dy = touchEndY - touchStartY;
             
+            // 确保滑动距离足够大才响应
+            if (Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
+                return; // 点击而非滑动，忽略
+            }
+            
             if (Math.abs(dx) > Math.abs(dy)) {
-                if (dx > 30) changeDirection('right');
-                else if (dx < -30) changeDirection('left');
+                if (dx > SWIPE_THRESHOLD) changeDirection('right');
+                else if (dx < -SWIPE_THRESHOLD) changeDirection('left');
             } else {
-                if (dy > 30) changeDirection('down');
-                else if (dy < -30) changeDirection('up');
+                if (dy > SWIPE_THRESHOLD) changeDirection('down');
+                else if (dy < -SWIPE_THRESHOLD) changeDirection('up');
             }
             
             e.preventDefault();
