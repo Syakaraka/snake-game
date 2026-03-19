@@ -63,16 +63,13 @@
         }
         
         .controls {
-            margin-top: 20px;
-            display: flex;
-            flex-direction: column;
+            margin-top: 25px;
+            display: grid;
+            grid-template-columns: repeat(3, 60px);
+            grid-template-rows: repeat(3, 60px);
+            gap: 12px;
+            justify-content: center;
             align-items: center;
-            gap: 10px;
-        }
-        
-        .control-row {
-            display: flex;
-            gap: 10px;
         }
         
         .btn {
@@ -384,18 +381,20 @@
         <div class="power-up-indicator" id="powerUpIndicator"></div>
         
         <div class="controls">
-            <div class="control-row">
-                <button class="btn" id="btnUp">↑</button>
-            </div>
-            <div class="control-row">
-                <button class="btn" id="btnLeft">←</button>
-                <button class="btn btn-secondary btn-small" id="btnPause">暂停</button>
-                <button class="btn" id="btnRight">→</button>
-            </div>
-            <div class="control-row">
-                <button class="btn" id="btnDown">↓</button>
-                <button class="btn btn-secondary btn-small" onclick="openSettings()" style="font-size: 12px;">⚙️</button>
-            </div>
+            <!-- 第一行：上 -->
+            <div></div>
+            <button class="btn" id="btnUp">↑</button>
+            <div></div>
+            
+            <!-- 第二行：左、暂停、右 -->
+            <button class="btn" id="btnLeft">←</button>
+            <button class="btn btn-secondary" id="btnPause" style="font-size: 14px;">暂停</button>
+            <button class="btn" id="btnRight">→</button>
+            
+            <!-- 第三行：下、设置 -->
+            <div></div>
+            <button class="btn" id="btnDown">↓</button>
+            <button class="btn btn-secondary" onclick="openSettings()" style="font-size: 16px;">⚙️</button>
         </div>
     </div>
     
@@ -412,8 +411,6 @@
         <h2>游戏结束!</h2>
         <p>得分：<span id="finalScore">0</span></p>
         <p>最高分：<span id="finalHighScore">0</span></p>
-        <button class="btn btn-secondary" id="reviveBtn" onclick="watchAdToRevive()" style="display:none;">🎬 看广告复活</button>
-        <button class="btn btn-secondary" onclick="watchAdForDoubleScore()">🎬 双倍分数</button>
         <button class="btn btn-secondary" onclick="playAgain()">再来一局</button>
         <button class="btn" onclick="quitToMenu()">返回主菜单</button>
     </div>
@@ -467,25 +464,32 @@
             
             switch(type) {
                 case 'eat':
-                    oscillator.frequency.value = 600 + Math.random() * 200;
-                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    // 吃食物：清脆的"叮"声
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.08);
+                    gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
                     oscillator.start(audioCtx.currentTime);
-                    oscillator.stop(audioCtx.currentTime + 0.1);
+                    oscillator.stop(audioCtx.currentTime + 0.15);
                     break;
                 case 'powerup':
-                    oscillator.frequency.value = 800;
-                    oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
-                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    // 吃到道具：上升的"嘀嘀"声
+                    oscillator.type = 'square';
+                    oscillator.frequency.setValueAtTime(523, audioCtx.currentTime);
+                    oscillator.frequency.linearRampToValueAtTime(1047, audioCtx.currentTime + 0.1);
+                    oscillator.frequency.linearRampToValueAtTime(1568, audioCtx.currentTime + 0.2);
+                    gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
                     gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
                     oscillator.start(audioCtx.currentTime);
                     oscillator.stop(audioCtx.currentTime + 0.3);
                     break;
                 case 'gameover':
+                    // 游戏结束：下降的"嗡"声
                     oscillator.type = 'sawtooth';
-                    oscillator.frequency.value = 400;
-                    oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.5);
-                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.4);
+                    gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
                     gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
                     oscillator.start(audioCtx.currentTime);
                     oscillator.stop(audioCtx.currentTime + 0.5);
@@ -1001,14 +1005,6 @@
             document.getElementById('finalScore').textContent = score;
             document.getElementById('finalHighScore').textContent = highScore;
             
-            // 显示看广告复活按钮（如果还有复活机会）
-            const reviveBtn = document.getElementById('reviveBtn');
-            if (canRevive && typeof AdInterface !== 'undefined') {
-                reviveBtn.style.display = 'inline-block';
-            } else {
-                reviveBtn.style.display = 'none';
-            }
-            
             document.getElementById('gameOver').style.display = 'block';
         }
         
@@ -1044,36 +1040,9 @@
         
         function playAgain() {
             document.getElementById('gameOver').style.display = 'none';
-            canRevive = true; // 重置复活机会
             currentGameSpeed = baseGameSpeed;
             initGame();
             startGame();
-        }
-        
-        function watchAdToRevive() {
-            if (typeof AdInterface !== 'undefined') {
-                AdInterface.showRewardAd('revive');
-            } else {
-                alert('广告功能初始化中，请稍后');
-            }
-        }
-        
-        // 奖励回调（从原生调用）
-        function onRewardGranted(rewardType) {
-            if (rewardType === 'revive') {
-                // 复活：恢复游戏
-                document.getElementById('gameOver').style.display = 'none';
-                canRevive = false; // 每局只能复活一次
-                isGameRunning = true;
-                gameLoop = setInterval(gameStep, currentGameSpeed);
-            } else if (rewardType === 'doubleScore') {
-                // 双倍分数
-                score *= 2;
-                document.getElementById('score').textContent = score;
-            } else if (rewardType === 'powerup') {
-                // 随机道具
-                placeFood(); // 简化处理，直接生成食物
-            }
         }
         
         function quitToMenu() {
@@ -1107,19 +1076,6 @@
                 toggle.classList.add('on');
             } else {
                 toggle.classList.remove('on');
-            }
-        }
-        
-        // ==================== 广告相关功能增强 ====================
-        function watchAdForDoubleScore() {
-            if (typeof AdInterface !== 'undefined') {
-                AdInterface.showRewardAd('doubleScore');
-            } else {
-                // 模拟广告奖励（开发测试用）
-                alert('模拟广告：分数 x2！');
-                score *= 2;
-                document.getElementById('score').textContent = score;
-                document.getElementById('finalScore').textContent = score;
             }
         }
         
