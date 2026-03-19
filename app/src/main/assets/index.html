@@ -25,33 +25,36 @@
         
         .game-container {
             text-align: center;
-            padding: 20px;
+            padding: 15px 10px;
             max-width: 100%;
+            max-height: 100vh;
+            overflow-y: auto;
         }
         
         h1 {
             color: #00ff88;
-            margin-bottom: 10px;
-            font-size: 28px;
+            margin-bottom: 8px;
+            font-size: 24px;
             text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
         }
         
         .score-board {
             display: flex;
             justify-content: center;
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 10px;
+            margin-bottom: 10px;
             color: #fff;
-            font-size: 16px;
+            font-size: 14px;
             flex-wrap: wrap;
         }
         
         .score-item {
             background: rgba(255, 255, 255, 0.1);
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 6px 12px;
+            border-radius: 16px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             transition: all 0.2s;
+            white-space: nowrap;
         }
         
         .score-item:hover {
@@ -69,30 +72,55 @@
             background: #0a0a1a;
             box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
             max-width: 100%;
+            max-height: calc(100vh - 350px);
             touch-action: none;
         }
         
+        /* 响应式适配 */
+        @media (max-height: 700px) {
+            .controls {
+                grid-template-columns: repeat(3, 50px);
+                grid-template-rows: repeat(3, 50px);
+                gap: 10px;
+            }
+            .btn {
+                width: 50px;
+                height: 50px;
+                font-size: 18px;
+            }
+            h1 {
+                font-size: 20px;
+            }
+            .score-board {
+                font-size: 12px;
+                gap: 6px;
+            }
+            .score-item {
+                padding: 4px 10px;
+            }
+        }
+        
         .controls {
-            margin-top: 30px;
+            margin-top: 20px;
             display: grid;
-            grid-template-columns: repeat(3, 65px);
-            grid-template-rows: repeat(3, 65px);
-            gap: 16px;
+            grid-template-columns: repeat(3, 55px);
+            grid-template-rows: repeat(3, 55px);
+            gap: 12px;
             justify-content: center;
             align-items: center;
         }
         
         .btn {
-            width: 65px;
-            height: 65px;
+            width: 55px;
+            height: 55px;
             border: none;
-            border-radius: 15px;
+            border-radius: 12px;
             background: linear-gradient(145deg, #00ff88, #00cc6a);
             color: #1a1a2e;
-            font-size: 22px;
+            font-size: 20px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
+            box-shadow: 0 3px 10px rgba(0, 255, 136, 0.4);
             transition: all 0.1s;
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
@@ -710,9 +738,9 @@
         
         // 难度配置（速度：ms/帧，数值越大越慢）
         const difficultyConfig = {
-            easy: { speed: 250, powerUpRate: 0.4, name: '简单' },
-            normal: { speed: 180, powerUpRate: 0.25, name: '正常' },
-            hard: { speed: 120, powerUpRate: 0.15, name: '困难' }
+            easy: { speed: 300, powerUpRate: 0.4, name: '简单' },
+            normal: { speed: 220, powerUpRate: 0.25, name: '正常' },
+            hard: { speed: 150, powerUpRate: 0.15, name: '困难' }
         };
         
         let currentDifficulty = 'normal';
