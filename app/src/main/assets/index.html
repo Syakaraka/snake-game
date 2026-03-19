@@ -372,6 +372,7 @@
             <div class="score-item">得分：<span id="score">0</span></div>
             <div class="score-item">最高：<span id="highScore">0</span></div>
             <div class="score-item">难度：<span id="difficulty">正常</span></div>
+            <div class="score-item">速度：<span id="gameSpeed">150</span>ms</div>
         </div>
         
         <canvas id="gameCanvas" width="300" height="300"></canvas>
@@ -419,8 +420,18 @@
     <div class="settings-panel" id="settingsPanel">
         <h2>⚙️ 设置</h2>
         <div class="setting-item">
-            <span>音效</span>
+            <span>音效开关</span>
             <div class="toggle-switch" id="soundToggle" onclick="toggleSound()"></div>
+        </div>
+        <div class="setting-item">
+            <span>音效音量</span>
+            <input type="range" id="volumeSlider" min="0" max="100" value="30" 
+                onchange="updateVolume(this.value)" style="width: 120px;">
+        </div>
+        <div class="setting-item">
+            <span>背景音乐</span>
+            <input type="range" id="bgmSlider" min="0" max="50" value="15" 
+                onchange="updateBGMVolume(this.value)" style="width: 120px;">
         </div>
         <button class="btn btn-secondary" onclick="closeSettings()" style="margin-top: 20px;">关闭</button>
     </div>
@@ -435,64 +446,209 @@
         // ==================== 粒子系统 ====================
         let particles = [];
         
-        // ==================== 音效系统 ====================
-        const soundEnabled = {
-            value: true,
+        // ==================== 音效系统增强版 ====================
+        const soundSettings = {
+            enabled: true,
+            volume: 0.3,
+            bgmVolume: 0.15,
             toggle: function() {
-                this.value = !this.value;
-                localStorage.setItem('snakeSoundEnabled', this.value);
+                this.enabled = !this.enabled;
+                localStorage.setItem('snakeSoundEnabled', this.enabled);
+                if (this.enabled) {
+                    initBGM();
+                } else {
+                    stopBGM();
+                }
             }
         };
         
         // 初始化音效设置
         const savedSound = localStorage.getItem('snakeSoundEnabled');
         if (savedSound !== null) {
-            soundEnabled.value = savedSound === 'true';
+            soundSettings.enabled = savedSound === 'true';
         }
         
-        // 简单的音效合成器（无需外部文件）
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // 音频上下文
+        let audioCtx = null;
+        let bgmOscillators = [];
+        let bgmGain = null;
+        let isBGMPlaying = false;
         
+        // 初始化音频上下文（用户交互后调用）
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+        
+        // 背景音乐 - 轻松的 ambient 音乐
+        function initBGM() {
+            if (!soundSettings.enabled || isBGMPlaying) return;
+            initAudio();
+            
+            stopBGM();
+            bgmGain = audioCtx.createGain();
+            bgmGain.gain.value = soundSettings.bgmVolume;
+            bgmGain.connect(audioCtx.destination);
+            
+            // 创建和弦进行（C - G - Am - F）
+            const chordProgression = [
+                [261.63, 329.63, 392.00],  // C major
+                [392.00, 493.88, 587.33],  // G major
+                [440.00, 523.25, 659.25],  // A minor
+                [349.23, 440.00, 523.25]   // F major
+            ];
+            
+            let chordIndex = 0;
+            const chordDuration = 2000; // 每个和弦 2 秒
+            
+            function playChord() {
+                if (!isBGMPlaying) return;
+                const chord = chordProgression[chordIndex];
+                chord.forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.1);
+                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + chordDuration/1000);
+                    osc.connect(gain);
+                    gain.connect(bgmGain);
+                    osc.start(audioCtx.currentTime);
+                    osc.stop(audioCtx.currentTime + chordDuration/1000);
+                    bgmOscillators.push(osc);
+                });
+                chordIndex = (chordIndex + 1) % chordProgression.length;
+            }
+            
+            // 每 2 秒播放一个和弦
+            playChord();
+            const bgmInterval = setInterval(() => {
+                if (!isBGMPlaying) {
+                    clearInterval(bgmInterval);
+                    return;
+                }
+                playChord();
+            }, chordDuration);
+            
+            isBGMPlaying = true;
+        }
+        
+        function stopBGM() {
+            bgmOscillators.forEach(osc => {
+                try { osc.stop(); } catch(e) {}
+            });
+            bgmOscillators = [];
+            if (bgmGain) {
+                bgmGain.disconnect();
+                bgmGain = null;
+            }
+            isBGMPlaying = false;
+        }
+        
+        // 增强的音效系统
         function playSound(type) {
-            if (!soundEnabled.value) return;
+            if (!soundSettings.enabled) return;
+            initAudio();
             
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
             
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
+            gainNode.gain.value = soundSettings.volume;
             
             switch(type) {
                 case 'eat':
-                    // 吃食物：清脆的"叮"声
+                    // 吃食物：清脆的"叮"声（双音）
                     oscillator.type = 'sine';
                     oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
                     oscillator.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.08);
-                    gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    gainNode.gain.setValueAtTime(soundSettings.volume, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
                     oscillator.start(audioCtx.currentTime);
-                    oscillator.stop(audioCtx.currentTime + 0.15);
+                    oscillator.stop(audioCtx.currentTime + 0.2);
+                    
+                    // 添加和声
+                    const harmony = audioCtx.createOscillator();
+                    const harmGain = audioCtx.createGain();
+                    harmony.type = 'sine';
+                    harmony.frequency.setValueAtTime(1100, audioCtx.currentTime);
+                    harmony.frequency.exponentialRampToValueAtTime(2200, audioCtx.currentTime + 0.08);
+                    harmGain.gain.setValueAtTime(soundSettings.volume * 0.5, audioCtx.currentTime);
+                    harmGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    harmony.connect(harmGain);
+                    harmGain.connect(audioCtx.destination);
+                    harmony.start(audioCtx.currentTime);
+                    harmony.stop(audioCtx.currentTime + 0.15);
                     break;
+                    
+                case 'turn':
+                    // 转向：轻微"滴"声
+                    oscillator.type = 'triangle';
+                    oscillator.frequency.setValueAtTime(660, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.05);
+                    gainNode.gain.setValueAtTime(soundSettings.volume * 0.4, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.1);
+                    break;
+                    
                 case 'powerup':
-                    // 吃到道具：上升的"嘀嘀"声
+                    // 吃到道具：上升的"嘀嘀"声（三段音阶）
                     oscillator.type = 'square';
                     oscillator.frequency.setValueAtTime(523, audioCtx.currentTime);
-                    oscillator.frequency.linearRampToValueAtTime(1047, audioCtx.currentTime + 0.1);
-                    oscillator.frequency.linearRampToValueAtTime(1568, audioCtx.currentTime + 0.2);
-                    gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    oscillator.frequency.linearRampToValueAtTime(784, audioCtx.currentTime + 0.1);
+                    oscillator.frequency.linearRampToValueAtTime(1047, audioCtx.currentTime + 0.2);
+                    gainNode.gain.setValueAtTime(soundSettings.volume * 0.5, audioCtx.currentTime);
                     gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
                     oscillator.start(audioCtx.currentTime);
                     oscillator.stop(audioCtx.currentTime + 0.3);
                     break;
+                    
+                case 'start':
+                    // 游戏开始：上升音阶
+                    const startFreqs = [523, 659, 784, 1047];
+                    startFreqs.forEach((freq, i) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.value = freq;
+                        gain.gain.setValueAtTime(0, audioCtx.currentTime + i * 0.1);
+                        gain.gain.linearRampToValueAtTime(soundSettings.volume, audioCtx.currentTime + i * 0.1 + 0.05);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.1 + 0.2);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(audioCtx.currentTime + i * 0.1);
+                        osc.stop(audioCtx.currentTime + i * 0.1 + 0.2);
+                    });
+                    return;
+                    
+                case 'pause':
+                    // 暂停：下降音
+                    oscillator.type = 'triangle';
+                    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.15);
+                    gainNode.gain.setValueAtTime(soundSettings.volume * 0.5, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.2);
+                    break;
+                    
                 case 'gameover':
-                    // 游戏结束：下降的"嗡"声
+                    // 游戏结束：长下降音
                     oscillator.type = 'sawtooth';
                     oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.4);
-                    gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                    oscillator.frequency.exponentialRampToValueAtTime(55, audioCtx.currentTime + 0.8);
+                    gainNode.gain.setValueAtTime(soundSettings.volume * 0.6, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.0);
                     oscillator.start(audioCtx.currentTime);
-                    oscillator.stop(audioCtx.currentTime + 0.5);
+                    oscillator.stop(audioCtx.currentTime + 1.0);
+                    stopBGM();
                     break;
             }
         }
@@ -573,6 +729,7 @@
         let score = 0;
         let highScore = localStorage.getItem('snakeHighScore') || 0;
         let gameLoop = null;
+        let animationFrame = null;
         let baseGameSpeed = 150;
         let currentGameSpeed = 150;
         let isGameRunning = false;
@@ -581,6 +738,8 @@
         let lastEatTime = 0;
         let activePowerUps = [];
         let isWallPassThrough = false;
+        let lastUpdateTime = 0;
+        let foodGlowPhase = 0; // 食物发光动画相位
         
         // ==================== 定时器管理（修复内存泄漏）====================
         let activeTimers = [];
@@ -613,10 +772,14 @@
             });
             document.querySelector(`.difficulty-btn.${diff}`).classList.add('selected');
             document.getElementById('difficulty').textContent = difficultyConfig[diff].name;
+            document.getElementById('gameSpeed').textContent = difficultyConfig[diff].speed;
         }
         
         function startGameFromMenu() {
             document.getElementById('startScreen').style.display = 'none';
+            initAudio(); // 初始化音频
+            playSound('start'); // 播放开始音效
+            initBGM(); // 开始背景音乐
             initGame();
             startGame();
         }
@@ -713,12 +876,10 @@
                 
                 if (type === 'speed') {
                     currentGameSpeed = baseGameSpeed * 0.8;
-                    clearInterval(gameLoop);
-                    gameLoop = setInterval(gameStep, currentGameSpeed);
+                    document.getElementById('gameSpeed').textContent = Math.round(currentGameSpeed);
                 } else if (type === 'slow') {
                     currentGameSpeed = baseGameSpeed * 1.2;
-                    clearInterval(gameLoop);
-                    gameLoop = setInterval(gameStep, currentGameSpeed);
+                    document.getElementById('gameSpeed').textContent = Math.round(currentGameSpeed);
                 } else if (type === 'ghost') {
                     isWallPassThrough = true;
                 }
@@ -730,8 +891,7 @@
                     activePowerUps = activePowerUps.filter(p => p.type !== type);
                     if (type === 'speed' || type === 'slow') {
                         currentGameSpeed = baseGameSpeed;
-                        clearInterval(gameLoop);
-                        gameLoop = setInterval(gameStep, currentGameSpeed);
+                        document.getElementById('gameSpeed').textContent = Math.round(currentGameSpeed);
                     } else if (type === 'ghost') {
                         isWallPassThrough = false;
                     }
@@ -838,9 +998,19 @@
                 }
             });
             
-            // 绘制食物
+            // 绘制食物（带发光动画）
             foods.forEach(food => {
                 const config = foodTypes[food.type];
+                
+                // 发光动画（呼吸效果）
+                const glowIntensity = 10 + Math.sin(foodGlowPhase) * 5;
+                const pulseSize = (gridSize/2 - 2) + Math.sin(foodGlowPhase * 2) * 1;
+                
+                // 外发光
+                ctx.shadowColor = config.glow;
+                ctx.shadowBlur = glowIntensity;
+                
+                // 食物渐变
                 const foodGradient = ctx.createRadialGradient(
                     food.x * gridSize + gridSize/2,
                     food.y * gridSize + gridSize/2,
@@ -853,13 +1023,11 @@
                 foodGradient.addColorStop(1, config.color);
                 
                 ctx.fillStyle = foodGradient;
-                ctx.shadowColor = config.glow;
-                ctx.shadowBlur = 10;
                 ctx.beginPath();
                 ctx.arc(
                     food.x * gridSize + gridSize/2,
                     food.y * gridSize + gridSize/2,
-                    gridSize/2 - 2,
+                    pulseSize,
                     0,
                     Math.PI * 2
                 );
@@ -974,7 +1142,18 @@
             updatePowerUpIndicator();
         }
         
-        function gameStep() {
+        function gameStep(currentTime) {
+            if (!isGameRunning) return;
+            
+            animationFrame = requestAnimationFrame(gameStep);
+            
+            // 控制游戏速度
+            if (currentTime - lastUpdateTime < currentGameSpeed) return;
+            lastUpdateTime = currentTime;
+            
+            // 更新食物发光动画
+            foodGlowPhase += 0.1;
+            
             if (!isPaused) {
                 update();
                 draw();
@@ -984,6 +1163,7 @@
         let canRevive = true;
         
         function gameOver() {
+            cancelAnimationFrame(animationFrame);
             clearInterval(gameLoop);
             clearAllTimers();
             isGameRunning = false;
@@ -1012,8 +1192,10 @@
             if (isGameRunning) return;
             isGameRunning = true;
             isPaused = false;
+            lastUpdateTime = 0;
             document.getElementById('btnPause').textContent = '暂停';
-            gameLoop = setInterval(gameStep, currentGameSpeed);
+            document.getElementById('gameSpeed').textContent = Math.round(currentGameSpeed);
+            animationFrame = requestAnimationFrame(gameStep);
         }
         
         function togglePause() {
@@ -1022,12 +1204,18 @@
             isPaused = !isPaused;
             document.getElementById('btnPause').textContent = isPaused ? '继续' : '暂停';
             document.getElementById('pauseMenu').style.display = isPaused ? 'block' : 'none';
+            
+            if (isPaused) {
+                playSound('pause');
+            }
         }
         
         function resumeGame() {
             isPaused = false;
             document.getElementById('pauseMenu').style.display = 'none';
             document.getElementById('btnPause').textContent = '暂停';
+            playSound('start'); // 播放继续音效
+            initBGM(); // 恢复背景音乐
         }
         
         function restartGame() {
@@ -1035,6 +1223,8 @@
             document.getElementById('gameOver').style.display = 'none';
             currentGameSpeed = baseGameSpeed;
             initGame();
+            playSound('start');
+            initBGM();
             startGame();
         }
         
@@ -1042,14 +1232,18 @@
             document.getElementById('gameOver').style.display = 'none';
             currentGameSpeed = baseGameSpeed;
             initGame();
+            playSound('start');
+            initBGM();
             startGame();
         }
         
         function quitToMenu() {
+            cancelAnimationFrame(animationFrame);
             clearInterval(gameLoop);
             clearAllTimers();
             isGameRunning = false;
             isPaused = false;
+            stopBGM(); // 停止背景音乐
             document.getElementById('pauseMenu').style.display = 'none';
             document.getElementById('gameOver').style.display = 'none';
             document.getElementById('startScreen').style.display = 'flex';
@@ -1059,6 +1253,8 @@
         function openSettings() {
             document.getElementById('settingsPanel').style.display = 'block';
             updateSoundToggle();
+            document.getElementById('volumeSlider').value = soundSettings.volume * 100;
+            document.getElementById('bgmSlider').value = soundSettings.bgmVolume * 100;
         }
         
         function closeSettings() {
@@ -1066,18 +1262,37 @@
         }
         
         function toggleSound() {
-            soundEnabled.toggle();
+            soundSettings.toggle();
             updateSoundToggle();
+        }
+        
+        function updateVolume(value) {
+            soundSettings.volume = value / 100;
+            localStorage.setItem('snakeSoundVolume', soundSettings.volume);
+        }
+        
+        function updateBGMVolume(value) {
+            soundSettings.bgmVolume = value / 100;
+            if (bgmGain) {
+                bgmGain.gain.value = soundSettings.bgmVolume;
+            }
+            localStorage.setItem('snakeBGMVolume', soundSettings.bgmVolume);
         }
         
         function updateSoundToggle() {
             const toggle = document.getElementById('soundToggle');
-            if (soundEnabled.value) {
+            if (soundSettings.enabled) {
                 toggle.classList.add('on');
             } else {
                 toggle.classList.remove('on');
             }
         }
+        
+        // 加载音量设置
+        const savedVolume = localStorage.getItem('snakeSoundVolume');
+        if (savedVolume) soundSettings.volume = parseFloat(savedVolume);
+        const savedBGMVolume = localStorage.getItem('snakeBGMVolume');
+        if (savedBGMVolume) soundSettings.bgmVolume = parseFloat(savedBGMVolume);
         
         function changeDirection(newDirection) {
             const opposites = {
@@ -1087,8 +1302,12 @@
                 'right': 'left'
             };
             
-            if (opposites[newDirection] !== direction) {
+            if (opposites[newDirection] !== direction && opposites[newDirection] !== nextDirection) {
                 nextDirection = newDirection;
+                // 播放转向音效（只在游戏进行中）
+                if (isGameRunning && !isPaused) {
+                    playSound('turn');
+                }
             }
         }
         
