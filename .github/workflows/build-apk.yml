@@ -3,8 +3,6 @@ name: Build Android APK
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:  # 允许手动触发
 
 jobs:
