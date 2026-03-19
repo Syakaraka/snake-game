@@ -1156,11 +1156,10 @@
                 foods.splice(foodIndex, 1);
                 placeFood();
                 
-                // 加速
-                if (currentGameSpeed > 80 && !activePowerUps.some(p => p.type === 'speed' || p.type === 'slow')) {
-                    currentGameSpeed -= 2;
-                    clearInterval(gameLoop);
-                    gameLoop = setInterval(gameStep, currentGameSpeed);
+                // 渐进加速（每吃 5 个食物加速一次）
+                if (score > 0 && score % 50 === 0 && currentGameSpeed > 80) {
+                    currentGameSpeed -= 5;
+                    document.getElementById('gameSpeed').textContent = Math.round(currentGameSpeed);
                 }
             } else {
                 snake.pop();
