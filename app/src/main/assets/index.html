@@ -254,6 +254,80 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
+        /* 屏幕震动动画 */
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(-5px, 5px); }
+            50% { transform: translate(5px, -5px); }
+            75% { transform: translate(-5px, -5px); }
+        }
+        
+        .shake {
+            animation: shake 0.3s ease-in-out;
+        }
+        
+        /* 设置面板 */
+        .settings-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            border: 2px solid #667eea;
+            text-align: center;
+            color: white;
+            display: none;
+            z-index: 150;
+            min-width: 300px;
+        }
+        
+        .settings-panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        .toggle-switch {
+            width: 50px;
+            height: 26px;
+            background: #666;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .toggle-switch.on {
+            background: #00ff88;
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        
+        .toggle-switch.on::after {
+            transform: translateX(24px);
+        }
+        
         .legend {
             margin-top: 15px;
             padding: 15px;
@@ -320,6 +394,7 @@
             </div>
             <div class="control-row">
                 <button class="btn" id="btnDown">↓</button>
+                <button class="btn btn-secondary btn-small" onclick="openSettings()" style="font-size: 12px;">⚙️</button>
             </div>
         </div>
     </div>
@@ -338,8 +413,19 @@
         <p>得分：<span id="finalScore">0</span></p>
         <p>最高分：<span id="finalHighScore">0</span></p>
         <button class="btn btn-secondary" id="reviveBtn" onclick="watchAdToRevive()" style="display:none;">🎬 看广告复活</button>
+        <button class="btn btn-secondary" onclick="watchAdForDoubleScore()">🎬 双倍分数</button>
         <button class="btn btn-secondary" onclick="playAgain()">再来一局</button>
         <button class="btn" onclick="quitToMenu()">返回主菜单</button>
+    </div>
+    
+    <!-- 设置面板 -->
+    <div class="settings-panel" id="settingsPanel">
+        <h2>⚙️ 设置</h2>
+        <div class="setting-item">
+            <span>音效</span>
+            <div class="toggle-switch" id="soundToggle" onclick="toggleSound()"></div>
+        </div>
+        <button class="btn btn-secondary" onclick="closeSettings()" style="margin-top: 20px;">关闭</button>
     </div>
 
     <script>
@@ -348,6 +434,107 @@
         const ctx = canvas.getContext('2d');
         const gridSize = 15;
         const tileCount = canvas.width / gridSize;
+        
+        // ==================== 粒子系统 ====================
+        let particles = [];
+        
+        // ==================== 音效系统 ====================
+        const soundEnabled = {
+            value: true,
+            toggle: function() {
+                this.value = !this.value;
+                localStorage.setItem('snakeSoundEnabled', this.value);
+            }
+        };
+        
+        // 初始化音效设置
+        const savedSound = localStorage.getItem('snakeSoundEnabled');
+        if (savedSound !== null) {
+            soundEnabled.value = savedSound === 'true';
+        }
+        
+        // 简单的音效合成器（无需外部文件）
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            if (!soundEnabled.value) return;
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            switch(type) {
+                case 'eat':
+                    oscillator.frequency.value = 600 + Math.random() * 200;
+                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.1);
+                    break;
+                case 'powerup':
+                    oscillator.frequency.value = 800;
+                    oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
+                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.3);
+                    break;
+                case 'gameover':
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.value = 400;
+                    oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.5);
+                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.5);
+                    break;
+            }
+        }
+        
+        // ==================== 震动反馈 ====================
+        function vibrate(pattern) {
+            if (navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        }
+        
+        function createParticles(x, y, color, count = 8) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x * gridSize + gridSize / 2,
+                    y: y * gridSize + gridSize / 2,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    life: 1.0,
+                    decay: 0.02 + Math.random() * 0.03,
+                    color: color,
+                    size: 2 + Math.random() * 3
+                });
+            }
+        }
+        
+        function updateParticles() {
+            particles = particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2; // 重力
+                p.life -= p.decay;
+                return p.life > 0;
+            });
+        }
+        
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+        }
         
         // 难度配置
         const difficultyConfig = {
@@ -391,7 +578,28 @@
         let activePowerUps = [];
         let isWallPassThrough = false;
         
+        // ==================== 定时器管理（修复内存泄漏）====================
+        let activeTimers = [];
+        
+        function scheduleTimer(callback, delay) {
+            const timerId = setTimeout(() => {
+                callback();
+                const index = activeTimers.indexOf(timerId);
+                if (index > -1) activeTimers.splice(index, 1);
+            }, delay);
+            activeTimers.push(timerId);
+            return timerId;
+        }
+        
+        function clearAllTimers() {
+            activeTimers.forEach(id => clearTimeout(id));
+            activeTimers = [];
+        }
+        
         document.getElementById('highScore').textContent = highScore;
+        
+        // 初始化音效开关状态
+        updateSoundToggle();
         
         // ==================== 游戏控制 ====================
         function selectDifficulty(diff) {
@@ -450,7 +658,7 @@
             
             // 传奇食物会在 3 秒后消失
             if (type === 'legendary') {
-                setTimeout(() => {
+                scheduleTimer(() => {
                     const index = foods.findIndex(f => f === newFood);
                     if (index !== -1) foods.splice(index, 1);
                 }, foodTypes.legendary.disappearTime);
@@ -481,7 +689,7 @@
             powerUps.push(newPowerUp);
             
             // 道具 8 秒后消失
-            setTimeout(() => {
+            scheduleTimer(() => {
                 const index = powerUps.findIndex(p => p === newPowerUp);
                 if (index !== -1) powerUps.splice(index, 1);
             }, 8000);
@@ -514,7 +722,7 @@
                 updatePowerUpIndicator();
                 
                 // 效果结束后恢复
-                setTimeout(() => {
+                scheduleTimer(() => {
                     activePowerUps = activePowerUps.filter(p => p.type !== type);
                     if (type === 'speed' || type === 'slow') {
                         currentGameSpeed = baseGameSpeed;
@@ -549,6 +757,9 @@
             // 清空画布
             ctx.fillStyle = '#0a0a1a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制粒子
+            drawParticles();
             
             // 绘制网格
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
@@ -668,6 +879,9 @@
         function update() {
             direction = nextDirection;
             
+            // 更新粒子
+            updateParticles();
+            
             const head = {x: snake[0].x, y: snake[0].y};
             
             switch(direction) {
@@ -720,6 +934,13 @@
                 score += Math.floor(config.score * comboBonus);
                 document.getElementById('score').textContent = score;
                 
+                // 生成粒子效果
+                createParticles(food.x, food.y, config.color, 10);
+                
+                // 播放音效和震动
+                playSound('eat');
+                vibrate(30);
+                
                 foods.splice(foodIndex, 1);
                 placeFood();
                 
@@ -739,6 +960,10 @@
                 const powerUp = powerUps[powerUpIndex];
                 activatePowerUp(powerUp.type);
                 powerUps.splice(powerUpIndex, 1);
+                
+                // 播放道具音效
+                playSound('powerup');
+                vibrate([50, 30, 50]);
             }
             
             // 更新道具指示器
@@ -756,7 +981,16 @@
         
         function gameOver() {
             clearInterval(gameLoop);
+            clearAllTimers();
             isGameRunning = false;
+            
+            // 屏幕震动效果
+            canvas.classList.add('shake');
+            setTimeout(() => canvas.classList.remove('shake'), 300);
+            
+            // 播放音效和震动
+            playSound('gameover');
+            vibrate([100, 50, 100, 50, 200]);
             
             if (score > highScore) {
                 highScore = score;
@@ -844,11 +1078,49 @@
         
         function quitToMenu() {
             clearInterval(gameLoop);
+            clearAllTimers();
             isGameRunning = false;
             isPaused = false;
             document.getElementById('pauseMenu').style.display = 'none';
             document.getElementById('gameOver').style.display = 'none';
             document.getElementById('startScreen').style.display = 'flex';
+        }
+        
+        // ==================== 设置功能 ====================
+        function openSettings() {
+            document.getElementById('settingsPanel').style.display = 'block';
+            updateSoundToggle();
+        }
+        
+        function closeSettings() {
+            document.getElementById('settingsPanel').style.display = 'none';
+        }
+        
+        function toggleSound() {
+            soundEnabled.toggle();
+            updateSoundToggle();
+        }
+        
+        function updateSoundToggle() {
+            const toggle = document.getElementById('soundToggle');
+            if (soundEnabled.value) {
+                toggle.classList.add('on');
+            } else {
+                toggle.classList.remove('on');
+            }
+        }
+        
+        // ==================== 广告相关功能增强 ====================
+        function watchAdForDoubleScore() {
+            if (typeof AdInterface !== 'undefined') {
+                AdInterface.showRewardAd('doubleScore');
+            } else {
+                // 模拟广告奖励（开发测试用）
+                alert('模拟广告：分数 x2！');
+                score *= 2;
+                document.getElementById('score').textContent = score;
+                document.getElementById('finalScore').textContent = score;
+            }
         }
         
         function changeDirection(newDirection) {
