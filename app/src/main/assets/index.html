@@ -164,31 +164,68 @@
         }
         
         .difficulty-select {
-            margin-bottom: 30px;
+            margin: 15px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
         }
         
         .difficulty-btn {
-            padding: 15px 40px;
-            margin: 10px;
-            font-size: 18px;
+            padding: 16px 50px;
+            font-size: 17px;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             width: 200px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .difficulty-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s, height 0.4s;
+        }
+        
+        .difficulty-btn:active::after {
+            width: 300px;
+            height: 300px;
         }
         
         .difficulty-btn.easy {
             background: linear-gradient(145deg, #00ff88, #00cc6a);
+            color: #1a1a2e;
         }
         
         .difficulty-btn.normal {
             background: linear-gradient(145deg, #ffd700, #ffaa00);
+            color: #1a1a2e;
         }
         
         .difficulty-btn.hard {
             background: linear-gradient(145deg, #ff4444, #cc0000);
+            color: white;
         }
         
         .difficulty-btn.selected {
-            transform: scale(1.1);
-            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+            transform: scale(1.08);
+            box-shadow: 0 0 30px rgba(255,255,255,0.6);
+            border: 2px solid #fff;
+        }
+        
+        .difficulty-btn:hover:not(.selected) {
+            transform: scale(1.05);
         }
         
         /* 暂停菜单 */
@@ -416,40 +453,61 @@
             margin-right: 5px;
         }
         
-        /* 皮肤选择器 */
+        /* 皮肤选择器优化 */
+        .skin-section {
+            margin: 10px 0 15px 0;
+        }
+        
+        .skin-section-title {
+            color: #aaa;
+            font-size: 12px;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        
         .skin-selector {
-            margin: 15px 0;
             display: flex;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
-            max-width: 400px;
+            max-width: 420px;
+            margin: 0 auto;
         }
         
         .skin-btn {
-            width: 50px;
-            height: 50px;
-            border: 3px solid transparent;
-            border-radius: 10px;
+            width: 55px;
+            height: 55px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
             cursor: pointer;
             transition: all 0.2s;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
         
-        .skin-btn:hover {
-            transform: scale(1.1);
+        .skin-btn:hover:not(.locked) {
+            transform: scale(1.15);
+            border-color: rgba(255,255,255,0.5);
+            box-shadow: 0 6px 20px rgba(255,255,255,0.3);
         }
         
         .skin-btn.selected {
             border-color: #fff;
-            box-shadow: 0 0 15px rgba(255,255,255,0.5);
+            box-shadow: 0 0 20px rgba(255,255,255,0.6);
+            animation: skinPulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes skinPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255,255,255,0.6); }
+            50% { box-shadow: 0 0 30px rgba(255,255,255,0.8); }
         }
         
         .skin-btn.locked {
-            filter: grayscale(100%);
-            opacity: 0.5;
+            filter: grayscale(80%);
+            opacity: 0.4;
             cursor: not-allowed;
+            background: #333 !important;
         }
         
         .skin-btn.locked::after {
@@ -458,7 +516,26 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 20px;
+            font-size: 24px;
+            filter: none;
+        }
+        
+        .skin-name {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            font-size: 10px;
+            padding: 2px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .skin-btn:hover:not(.locked) .skin-name {
+            opacity: 1;
         }
         
         /* 游戏结束统计面板 */
@@ -546,39 +623,75 @@
             color: #333;
         }
         
-        /* 游戏模式选择 */
+        /* 游戏模式选择优化 */
         .mode-select {
-            margin: 20px 0;
+            margin: 15px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .mode-row {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
         }
         
         .mode-btn {
-            padding: 12px 30px;
-            margin: 8px;
-            font-size: 16px;
+            padding: 14px 28px;
+            font-size: 15px;
+            font-weight: bold;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .mode-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .mode-btn:hover::before {
+            left: 100%;
         }
         
         .mode-btn.classic {
             background: linear-gradient(145deg, #00ff88, #00cc6a);
             color: #1a1a2e;
+            min-width: 140px;
         }
         
         .mode-btn.timed {
             background: linear-gradient(145deg, #667eea, #764ba2);
             color: white;
+            min-width: 140px;
         }
         
         .mode-btn.survival {
             background: linear-gradient(145deg, #ff4444, #cc0000);
             color: white;
+            min-width: 140px;
         }
         
         .mode-btn.selected {
-            transform: scale(1.1);
-            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+            transform: scale(1.08);
+            box-shadow: 0 0 25px rgba(255,255,255,0.5);
+            border: 2px solid #fff;
+        }
+        
+        .mode-btn:hover:not(.selected) {
+            transform: scale(1.05);
         }
         
         /* 计时器显示 */
@@ -610,24 +723,33 @@
         <h1>🐍 贪吃蛇</h1>
         
         <!-- 蛇皮肤选择 -->
-        <div style="color: #aaa; font-size: 12px; margin-top: 10px;">选择皮肤</div>
-        <div class="skin-selector" id="skinSelector">
-            <!-- 皮肤按钮由 JS 生成 -->
+        <div class="skin-section">
+            <div class="skin-section-title">选择皮肤</div>
+            <div class="skin-selector" id="skinSelector">
+                <!-- 皮肤按钮由 JS 生成 -->
+            </div>
         </div>
         
         <!-- 游戏模式选择 -->
         <div class="mode-select">
-            <button class="mode-btn classic selected" onclick="selectGameMode('classic')">经典模式</button>
-            <button class="mode-btn timed" onclick="selectGameMode('timed')">⏱️ 限时模式</button>
+            <div class="mode-row">
+                <button class="mode-btn classic selected" onclick="selectGameMode('classic')">经典模式</button>
+                <button class="mode-btn timed" onclick="selectGameMode('timed')">⏱️ 限时模式</button>
+            </div>
             <button class="mode-btn survival" onclick="selectGameMode('survival')">💀 生存模式</button>
         </div>
         
+        <!-- 难度选择 -->
         <div class="difficulty-select">
-            <button class="btn difficulty-btn easy" onclick="selectDifficulty('easy')">简单</button>
-            <button class="btn difficulty-btn normal selected" onclick="selectDifficulty('normal')">正常</button>
-            <button class="btn difficulty-btn hard" onclick="selectDifficulty('hard')">困难</button>
+            <button class="difficulty-btn easy" onclick="selectDifficulty('easy')">简单</button>
+            <button class="difficulty-btn normal selected" onclick="selectDifficulty('normal')">正常</button>
+            <button class="difficulty-btn hard" onclick="selectDifficulty('hard')">困难</button>
         </div>
-        <button class="btn difficulty-btn btn-secondary" onclick="startGameFromMenu()">开始游戏</button>
+        
+        <!-- 开始游戏按钮 -->
+        <button class="start-game-btn" onclick="startGameFromMenu()">开始游戏</button>
+        
+        <!-- 食物图例 -->
         <div class="legend">
             <div class="legend-item"><span class="legend-color" style="background:#ff6b6b"></span>普通 +10</div>
             <div class="legend-item"><span class="legend-color" style="background:#a855f7"></span>稀有 +20</div>
@@ -1307,7 +1429,9 @@
                 return `<div class="skin-btn ${selected} ${locked}" 
                     style="background: ${gradient}"
                     onclick="selectSkin('${skin.id}')"
-                    title="${skin.name}${skin.unlocked ? '' : ' (未解锁)'}"></div>`;
+                    title="${skin.name}${skin.unlocked ? '' : ' (未解锁)'}">
+                    <div class="skin-name">${skin.name}</div>
+                </div>`;
             }).join('');
         }
         
