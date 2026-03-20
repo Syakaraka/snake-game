@@ -415,12 +415,118 @@
             border-radius: 50%;
             margin-right: 5px;
         }
+        
+        /* 障碍物样式 */
+        .obstacle {
+            position: absolute;
+            background: linear-gradient(145deg, #4a4a4a, #2a2a2a);
+            border: 2px solid #666;
+            border-radius: 4px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        
+        /* 成就通知 */
+        .achievement-popup {
+            position: fixed;
+            top: 80px;
+            right: -350px;
+            background: linear-gradient(145deg, #ffd700, #ffaa00);
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: #1a1a2e;
+            font-weight: bold;
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
+            transition: right 0.5s ease-out;
+            z-index: 100;
+            max-width: 320px;
+        }
+        
+        .achievement-popup.show {
+            right: 20px;
+        }
+        
+        .achievement-popup h4 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            color: #1a1a2e;
+        }
+        
+        .achievement-popup p {
+            margin: 0;
+            font-size: 12px;
+            color: #333;
+        }
+        
+        /* 游戏模式选择 */
+        .mode-select {
+            margin: 20px 0;
+        }
+        
+        .mode-btn {
+            padding: 12px 30px;
+            margin: 8px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .mode-btn.classic {
+            background: linear-gradient(145deg, #00ff88, #00cc6a);
+            color: #1a1a2e;
+        }
+        
+        .mode-btn.timed {
+            background: linear-gradient(145deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .mode-btn.survival {
+            background: linear-gradient(145deg, #ff4444, #cc0000);
+            color: white;
+        }
+        
+        .mode-btn.selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+        
+        /* 计时器显示 */
+        .timer-display {
+            position: fixed;
+            top: 85px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ffd700;
+            border-radius: 10px;
+            padding: 8px 15px;
+            color: #ffd700;
+            font-size: 18px;
+            font-weight: bold;
+            display: none;
+            z-index: 50;
+        }
+        
+        .timer-display.warning {
+            animation: pulse 0.5s ease-in-out infinite;
+            border-color: #ff4444;
+            color: #ff4444;
+        }
     </style>
 </head>
 <body>
     <!-- 开始界面 -->
     <div class="start-screen" id="startScreen">
         <h1>🐍 贪吃蛇</h1>
+        
+        <!-- 游戏模式选择 -->
+        <div class="mode-select">
+            <button class="mode-btn classic selected" onclick="selectGameMode('classic')">经典模式</button>
+            <button class="mode-btn timed" onclick="selectGameMode('timed')">⏱️ 限时模式</button>
+            <button class="mode-btn survival" onclick="selectGameMode('survival')">💀 生存模式</button>
+        </div>
+        
         <div class="difficulty-select">
             <button class="btn difficulty-btn easy" onclick="selectDifficulty('easy')">简单</button>
             <button class="btn difficulty-btn normal selected" onclick="selectDifficulty('normal')">正常</button>
@@ -433,6 +539,15 @@
             <div class="legend-item"><span class="legend-color" style="background:#ffd700"></span>传奇 +50</div>
         </div>
     </div>
+    
+    <!-- 成就通知 -->
+    <div class="achievement-popup" id="achievementPopup">
+        <h4>🏆 成就解锁!</h4>
+        <p id="achievementText">首次得分 100 分</p>
+    </div>
+    
+    <!-- 计时器显示 -->
+    <div class="timer-display" id="timerDisplay">⏱️ <span id="timerValue">60</span>s</div>
 
     <div class="game-container">
         <h1>🐍 贪吃蛇</h1>
@@ -837,13 +952,36 @@
             speed: { color: '#00ffff', effect: '加速', duration: 5000, icon: '⚡' },
             slow: { color: '#00ff00', effect: '减速', duration: 5000, icon: '🐢' },
             ghost: { color: '#ffffff', effect: '穿墙', duration: 5000, icon: '👻' },
-            shrink: { color: '#ff69b4', effect: '缩短', duration: 0, icon: '✂️' }
+            shrink: { color: '#ff69b4', effect: '缩短', duration: 0, icon: '✂️' },
+            magnet: { color: '#ff69b4', effect: '磁铁', duration: 8000, icon: '🧲' },
+            invincible: { color: '#ffd700', effect: '无敌', duration: 5000, icon: '🛡️' },
+            doubleScore: { color: '#ff1493', effect: '双倍得分', duration: 10000, icon: '2️⃣' }
+        };
+        
+        // 游戏模式
+        const gameModes = {
+            classic: { name: '经典模式', description: '传统玩法，无限制' },
+            timed: { name: '限时模式', time: 60, description: '60 秒内获得最高分' },
+            survival: { name: '生存模式', obstacles: true, description: '躲避障碍物生存' }
+        };
+        
+        // 成就系统
+        const achievements = {
+            firstBlood: { id: 'firstBlood', name: '首血', desc: '首次得分达到 100 分', condition: (s) => s.score >= 100, unlocked: false },
+            snakeMaster: { id: 'snakeMaster', name: '蛇大师', desc: '单次得分达到 500 分', condition: (s) => s.score >= 500, unlocked: false },
+            legendKiller: { id: 'legendKiller', name: '传奇杀手', desc: '吃到 10 个传奇食物', condition: (s) => s.legendaryEaten >= 10, unlocked: false },
+            comboKing: { id: 'comboKing', name: '连击之王', desc: '达成 10 连击', condition: (s) => s.maxCombo >= 10, unlocked: false },
+            survivor: { id: 'survivor', name: '生存专家', desc: '在生存模式下得分 200 分', condition: (s) => s.survivalScore >= 200, unlocked: false },
+            timeMaster: { id: 'timeMaster', name: '时间大师', desc: '在限时模式下得分 300 分', condition: (s) => s.timedScore >= 300, unlocked: false },
+            powerUpCollector: { id: 'powerUpCollector', name: '道具收藏家', desc: '收集 20 个道具', condition: (s) => s.powerUpsCollected >= 20, unlocked: false },
+            marathon: { id: 'marathon', name: '马拉松', desc: '蛇长度达到 50', condition: (s) => s.snakeLength >= 50, unlocked: false }
         };
         
         // ==================== 游戏状态 ====================
         let snake = [];
         let foods = [];
         let powerUps = [];
+        let obstacles = []; // 障碍物数组
         let direction = 'right';
         let nextDirection = 'right';
         let score = 0;
@@ -862,6 +1000,28 @@
         let foodGlowPhase = 0; // 食物发光动画相位
         let powerUpIndicatorCache = ''; // 缓存道具指示器 HTML，避免频繁重绘
         let powerUpUpdateInterval = null; // 道具倒计时更新定时器
+        
+        // 游戏模式状态
+        let currentGameMode = 'classic';
+        let gameTime = 0; // 限时模式剩余时间
+        let gameTimerInterval = null;
+        let isInvincible = false; // 无敌状态
+        
+        // 成就进度
+        let achievementProgress = {
+            legendaryEaten: 0,
+            maxCombo: 0,
+            survivalScore: 0,
+            timedScore: 0,
+            powerUpsCollected: 0,
+            snakeLength: 0
+        };
+        
+        // 加载已解锁的成就
+        const unlockedAchievements = JSON.parse(localStorage.getItem('snakeAchievements') || '{}');
+        Object.keys(unlockedAchievements).forEach(key => {
+            if (achievements[key]) achievements[key].unlocked = true;
+        });
         
         // ==================== 定时器管理（修复内存泄漏）====================
         let activeTimers = [];
@@ -897,6 +1057,75 @@
             document.getElementById('gameSpeed').textContent = difficultyConfig[diff].speed;
         }
         
+        function selectGameMode(mode) {
+            currentGameMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelector(`.mode-btn.${mode}`).classList.add('selected');
+        }
+        
+        // 成就系统
+        function checkAchievements() {
+            const state = {
+                score: score,
+                legendaryEaten: achievementProgress.legendaryEaten,
+                maxCombo: achievementProgress.maxCombo,
+                survivalScore: currentGameMode === 'survival' ? score : achievementProgress.survivalScore,
+                timedScore: currentGameMode === 'timed' ? score : achievementProgress.timedScore,
+                powerUpsCollected: achievementProgress.powerUpsCollected,
+                snakeLength: snake.length
+            };
+            
+            Object.values(achievements).forEach(ach => {
+                if (!ach.unlocked && ach.condition(state)) {
+                    unlockAchievement(ach);
+                }
+            });
+        }
+        
+        function unlockAchievement(achievement) {
+            achievement.unlocked = true;
+            unlockedAchievements[achievement.id] = true;
+            localStorage.setItem('snakeAchievements', JSON.stringify(unlockedAchievements));
+            
+            // 显示成就通知
+            const popup = document.getElementById('achievementPopup');
+            document.getElementById('achievementText').textContent = achievement.desc;
+            popup.classList.add('show');
+            
+            // 播放音效
+            playSound('powerup');
+            
+            // 3 秒后隐藏
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 生成障碍物（生存模式）
+        function generateObstacles(count = 5) {
+            obstacles = [];
+            for (let i = 0; i < count; i++) {
+                let obstacle;
+                let attempts = 0;
+                do {
+                    obstacle = {
+                        x: Math.floor(Math.random() * tileCount),
+                        y: Math.floor(Math.random() * tileCount),
+                        width: Math.floor(Math.random() * 2) + 1,
+                        height: Math.floor(Math.random() * 2) + 1
+                    };
+                    attempts++;
+                } while (
+                    attempts < 50 &&
+                    (snake.some(s => Math.abs(s.x - obstacle.x) < 5 && Math.abs(s.y - obstacle.y) < 5) ||
+                     obstacle.x < 5 || obstacle.y < 5) // 远离蛇和边界
+                );
+                if (attempts < 50) obstacles.push(obstacle);
+            }
+        }
+        
         function startGameFromMenu() {
             document.getElementById('startScreen').style.display = 'none';
             initAudio(); // 初始化音频
@@ -920,8 +1149,27 @@
             powerUps = [];
             activePowerUps = [];
             isWallPassThrough = false;
+            isInvincible = false;
             baseGameSpeed = difficultyConfig[currentDifficulty].speed;
             currentGameSpeed = baseGameSpeed;
+            
+            // 游戏模式初始化
+            if (currentGameMode === 'timed') {
+                gameTime = gameModes.timed.time;
+                document.getElementById('timerDisplay').style.display = 'block';
+                document.getElementById('timerValue').textContent = gameTime;
+                document.getElementById('timerDisplay').classList.remove('warning');
+            } else {
+                document.getElementById('timerDisplay').style.display = 'none';
+            }
+            
+            // 生存模式生成障碍物
+            if (currentGameMode === 'survival') {
+                generateObstacles(8);
+            } else {
+                obstacles = [];
+            }
+            
             document.getElementById('score').textContent = score;
             document.getElementById('comboDisplay').style.display = 'none';
             updatePowerUpIndicator();
@@ -1004,7 +1252,14 @@
                     document.getElementById('gameSpeed').textContent = Math.round(currentGameSpeed);
                 } else if (type === 'ghost') {
                     isWallPassThrough = true;
+                } else if (type === 'invincible') {
+                    isInvincible = true;
+                    snake[0].color = '#ffd700'; // 蛇头变金色
+                } else if (type === 'magnet') {
+                    // 磁铁效果：吸引附近食物
+                    attractFood();
                 }
+                // doubleScore 不需要特殊处理，在吃食物时计算
                 
                 // 立即强制更新一次显示（新道具出现）
                 updatePowerUpIndicator(true);
@@ -1017,11 +1272,30 @@
                         document.getElementById('gameSpeed').textContent = Math.round(currentGameSpeed);
                     } else if (type === 'ghost') {
                         isWallPassThrough = false;
+                    } else if (type === 'invincible') {
+                        isInvincible = false;
+                        snake[0].color = null;
                     }
                     // 强制更新（道具消失）
                     updatePowerUpIndicator(true);
                 }, config.duration);
             }
+        }
+        
+        // 磁铁效果：吸引附近食物
+        function attractFood() {
+            if (foods.length === 0) return;
+            const head = snake[0];
+            foods.forEach(food => {
+                const dx = head.x - food.x;
+                const dy = head.y - food.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 5 && dist > 0) {
+                    // 向蛇的方向移动
+                    food.x += Math.sign(dx);
+                    food.y += Math.sign(dy);
+                }
+            });
         }
         
         function updatePowerUpIndicator(force = false) {
@@ -1204,6 +1478,34 @@
                     powerUp.x * gridSize + gridSize/2, 
                     powerUp.y * gridSize + gridSize/2);
             });
+            
+            // 绘制障碍物
+            obstacles.forEach(obs => {
+                const gradient = ctx.createLinearGradient(
+                    obs.x * gridSize, obs.y * gridSize,
+                    (obs.x + obs.width) * gridSize, (obs.y + obs.height) * gridSize
+                );
+                gradient.addColorStop(0, '#4a4a4a');
+                gradient.addColorStop(1, '#2a2a2a');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(
+                    obs.x * gridSize,
+                    obs.y * gridSize,
+                    obs.width * gridSize,
+                    obs.height * gridSize
+                );
+                
+                // 障碍物边框
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(
+                    obs.x * gridSize,
+                    obs.y * gridSize,
+                    obs.width * gridSize,
+                    obs.height * gridSize
+                );
+            });
         }
         
         function update() {
@@ -1232,8 +1534,21 @@
                 if (head.x < 0 || head.x >= tileCount || 
                     head.y < 0 || head.y >= tileCount ||
                     snake.some(segment => segment.x === head.x && segment.y === head.y)) {
-                    gameOver();
-                    return;
+                    if (!isInvincible) { // 无敌状态下不会死亡
+                        gameOver();
+                        return;
+                    }
+                }
+            }
+            
+            // 检查障碍物碰撞（生存模式）
+            if (!isInvincible && obstacles.length > 0) {
+                for (const obs of obstacles) {
+                    if (head.x >= obs.x && head.x < obs.x + obs.width &&
+                        head.y >= obs.y && head.y < obs.y + obs.height) {
+                        gameOver();
+                        return;
+                    }
                 }
             }
             
@@ -1259,10 +1574,19 @@
                 }
                 lastEatTime = now;
                 
-                // 计算得分（包含连击加成）
+                // 更新最大连击记录
+                if (combo > achievementProgress.maxCombo) achievementProgress.maxCombo = combo;
+                
+                // 计算得分（包含连击加成和双倍得分道具）
                 const comboBonus = combo >= 2 ? 1 + (combo - 1) * 0.2 : 1;
-                score += Math.floor(config.score * comboBonus);
+                const doubleScoreBonus = activePowerUps.some(p => p.type === 'doubleScore') ? 2 : 1;
+                score += Math.floor(config.score * comboBonus * doubleScoreBonus);
                 document.getElementById('score').textContent = score;
+                
+                // 追踪传奇食物
+                if (food.type === 'legendary') {
+                    achievementProgress.legendaryEaten++;
+                }
                 
                 // 生成粒子效果
                 createParticles(food.x, food.y, config.color, 10);
@@ -1289,6 +1613,9 @@
                 const powerUp = powerUps[powerUpIndex];
                 activatePowerUp(powerUp.type);
                 powerUps.splice(powerUpIndex, 1);
+                
+                // 追踪道具收集成就
+                achievementProgress.powerUpsCollected++;
                 
                 // 播放道具音效
                 playSound('powerup');
@@ -1327,7 +1654,16 @@
             clearInterval(gameLoop);
             clearAllTimers();
             stopPowerUpTimer(); // 停止道具倒计时更新器
+            if (gameTimerInterval) clearInterval(gameTimerInterval); // 停止游戏计时器
             isGameRunning = false;
+            
+            // 更新成就进度
+            achievementProgress.snakeLength = snake.length;
+            if (currentGameMode === 'survival') achievementProgress.survivalScore = Math.max(achievementProgress.survivalScore, score);
+            if (currentGameMode === 'timed') achievementProgress.timedScore = Math.max(achievementProgress.timedScore, score);
+            
+            // 检查成就
+            checkAchievements();
             
             // 屏幕震动效果
             canvas.classList.add('shake');
@@ -1347,6 +1683,7 @@
             document.getElementById('finalHighScore').textContent = highScore;
             
             document.getElementById('gameOver').style.display = 'block';
+            document.getElementById('timerDisplay').style.display = 'none'; // 隐藏计时器
         }
         
         function startGame() {
@@ -1358,6 +1695,21 @@
             document.getElementById('gameSpeed').textContent = Math.round(currentGameSpeed);
             animationFrame = requestAnimationFrame(gameStep);
             startPowerUpTimer(); // 启动道具倒计时更新器
+            
+            // 限时模式计时器
+            if (currentGameMode === 'timed') {
+                if (gameTimerInterval) clearInterval(gameTimerInterval);
+                gameTimerInterval = setInterval(() => {
+                    gameTime--;
+                    document.getElementById('timerValue').textContent = gameTime;
+                    if (gameTime <= 10) {
+                        document.getElementById('timerDisplay').classList.add('warning');
+                    }
+                    if (gameTime <= 0) {
+                        gameOver();
+                    }
+                }, 1000);
+            }
         }
         
         function togglePause() {
