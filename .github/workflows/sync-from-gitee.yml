@@ -1,0 +1,33 @@
+name: Sync from Gitee
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitHub repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add Gitee remote
+        run: |
+          git remote add gitee https://gitee.com/syakaraka/snake-game.git
+
+      - name: Fetch from Gitee
+        run: |
+          git fetch gitee main
+
+      - name: Reset to Gitee main
+        run: |
+          git reset --hard gitee/main
+
+      - name: Push to GitHub
+        run: |
+          git push origin main --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
