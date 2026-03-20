@@ -416,6 +416,95 @@
             margin-right: 5px;
         }
         
+        /* 皮肤选择器 */
+        .skin-selector {
+            margin: 15px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            max-width: 400px;
+        }
+        
+        .skin-btn {
+            width: 50px;
+            height: 50px;
+            border: 3px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .skin-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .skin-btn.selected {
+            border-color: #fff;
+            box-shadow: 0 0 15px rgba(255,255,255,0.5);
+        }
+        
+        .skin-btn.locked {
+            filter: grayscale(100%);
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .skin-btn.locked::after {
+            content: '🔒';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+        }
+        
+        /* 游戏结束统计面板 */
+        .stats-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: left;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-label {
+            color: #aaa;
+        }
+        
+        .stat-value {
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        .stat-value.highlight {
+            color: #00ff88;
+        }
+        
+        /* 连击特效 */
+        @keyframes comboPop {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .combo-pop {
+            animation: comboPop 0.3s ease-out;
+        }
+        
         /* 障碍物样式 */
         .obstacle {
             position: absolute;
@@ -520,6 +609,12 @@
     <div class="start-screen" id="startScreen">
         <h1>🐍 贪吃蛇</h1>
         
+        <!-- 蛇皮肤选择 -->
+        <div style="color: #aaa; font-size: 12px; margin-top: 10px;">选择皮肤</div>
+        <div class="skin-selector" id="skinSelector">
+            <!-- 皮肤按钮由 JS 生成 -->
+        </div>
+        
         <!-- 游戏模式选择 -->
         <div class="mode-select">
             <button class="mode-btn classic selected" onclick="selectGameMode('classic')">经典模式</button>
@@ -595,8 +690,41 @@
     <!-- 游戏结束界面 -->
     <div class="game-over" id="gameOver">
         <h2>游戏结束!</h2>
-        <p>得分：<span id="finalScore">0</span></p>
-        <p>最高分：<span id="finalHighScore">0</span></p>
+        
+        <!-- 统计面板 -->
+        <div class="stats-panel">
+            <div class="stat-row">
+                <span class="stat-label">本局得分</span>
+                <span class="stat-value highlight" id="statScore">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">最高纪录</span>
+                <span class="stat-value" id="statHighScore">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">蛇长度</span>
+                <span class="stat-value" id="statLength">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">最大连击</span>
+                <span class="stat-value" id="statCombo">0x</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">游戏时间</span>
+                <span class="stat-value" id="statTime">0s</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">道具收集</span>
+                <span class="stat-value" id="statPowerUps">0</span>
+            </div>
+        </div>
+        
+        <p style="margin-bottom: 15px;">
+            得分：<span id="finalScore" style="color: #00ff88; font-weight: bold;">0</span>
+        </p>
+        <p style="margin-bottom: 15px;">
+            最高分：<span id="finalHighScore" style="color: #ffd700;">0</span>
+        </p>
         <button class="btn btn-secondary" onclick="playAgain()">再来一局</button>
         <button class="btn" onclick="quitToMenu()">返回主菜单</button>
     </div>
@@ -965,6 +1093,75 @@
             survival: { name: '生存模式', obstacles: true, description: '躲避障碍物生存' }
         };
         
+        // 蛇皮肤系统
+        const snakeSkins = {
+            classic: { 
+                id: 'classic', 
+                name: '经典绿', 
+                colors: ['#00ff88', '#00cc6a', '#00aa55'],
+                unlockCondition: (stats) => true,
+                unlocked: true
+            },
+            blue: { 
+                id: 'blue', 
+                name: '冰蓝', 
+                colors: ['#00bfff', '#0099cc', '#007799'],
+                unlockCondition: (stats) => stats.totalScore >= 1000,
+                unlocked: false
+            },
+            purple: { 
+                id: 'purple', 
+                name: '紫晶', 
+                colors: ['#bf00ff', '#9900cc', '#770099'],
+                unlockCondition: (stats) => stats.totalScore >= 3000,
+                unlocked: false
+            },
+            gold: { 
+                id: 'gold', 
+                name: '黄金', 
+                colors: ['#ffd700', '#ccaa00', '#aa8800'],
+                unlockCondition: (stats) => stats.highScore >= 500,
+                unlocked: false
+            },
+            rainbow: { 
+                id: 'rainbow', 
+                name: '彩虹', 
+                colors: ['#ff0000', '#ff7700', '#ffff00', '#00ff00', '#0000ff', '#8b00ff'],
+                unlockCondition: (stats) => stats.achievementsUnlocked >= 4,
+                unlocked: false
+            },
+            fire: { 
+                id: 'fire', 
+                name: '火焰', 
+                colors: ['#ff4500', '#ff6600', '#ff8800'],
+                unlockCondition: (stats) => stats.maxCombo >= 15,
+                unlocked: false
+            },
+            ice: { 
+                id: 'ice', 
+                name: '寒冰', 
+                colors: ['#e0ffff', '#afeeee', '#87cefa'],
+                unlockCondition: (stats) => stats.gamesPlayed >= 50,
+                unlocked: false
+            },
+            dark: { 
+                id: 'dark', 
+                name: '暗黑', 
+                colors: ['#4b0082', '#800080', '#9370db'],
+                unlockCondition: (stats) => stats.totalScore >= 10000,
+                unlocked: false
+            }
+        };
+        
+        // 加载已解锁的皮肤
+        const unlockedSkins = JSON.parse(localStorage.getItem('snakeSkins') || '{}');
+        Object.keys(unlockedSkins).forEach(key => {
+            if (snakeSkins[key]) snakeSkins[key].unlocked = true;
+        });
+        
+        // 当前选择的皮肤
+        let currentSkin = localStorage.getItem('snakeCurrentSkin') || 'classic';
+        
         // 成就系统
         const achievements = {
             firstBlood: { id: 'firstBlood', name: '首血', desc: '首次得分达到 100 分', condition: (s) => s.score >= 100, unlocked: false },
@@ -1023,6 +1220,27 @@
             if (achievements[key]) achievements[key].unlocked = true;
         });
         
+        // 游戏统计数据
+        let gameStats = JSON.parse(localStorage.getItem('snakeStats') || '{}');
+        gameStats = {
+            totalScore: gameStats.totalScore || 0,
+            highScore: gameStats.highScore || 0,
+            gamesPlayed: gameStats.gamesPlayed || 0,
+            achievementsUnlocked: gameStats.achievementsUnlocked || 0,
+            maxCombo: gameStats.maxCombo || 0,
+            totalPowerUps: gameStats.totalPowerUps || 0
+        };
+        
+        // 单局统计
+        let sessionStats = {
+            startTime: 0,
+            endTime: 0,
+            finalScore: 0,
+            finalLength: 0,
+            maxCombo: 0,
+            powerUpsCollected: 0
+        };
+        
         // ==================== 定时器管理（修复内存泄漏）====================
         let activeTimers = [];
         
@@ -1046,6 +1264,9 @@
         // 初始化音效开关状态
         updateSoundToggle();
         
+        // 渲染皮肤选择器
+        renderSkinSelector();
+        
         // ==================== 游戏控制 ====================
         function selectDifficulty(diff) {
             currentDifficulty = diff;
@@ -1063,6 +1284,46 @@
                 btn.classList.remove('selected');
             });
             document.querySelector(`.mode-btn.${mode}`).classList.add('selected');
+        }
+        
+        // 皮肤系统
+        function renderSkinSelector() {
+            const container = document.getElementById('skinSelector');
+            if (!container) return;
+            
+            // 检查解锁条件
+            Object.values(snakeSkins).forEach(skin => {
+                if (!skin.unlocked && skin.unlockCondition(gameStats)) {
+                    skin.unlocked = true;
+                    unlockedSkins[skin.id] = true;
+                    localStorage.setItem('snakeSkins', JSON.stringify(unlockedSkins));
+                }
+            });
+            
+            container.innerHTML = Object.values(snakeSkins).map(skin => {
+                const gradient = `linear-gradient(135deg, ${skin.colors[0]}, ${skin.colors[skin.colors.length - 1]})`;
+                const selected = skin.id === currentSkin ? 'selected' : '';
+                const locked = skin.unlocked ? '' : 'locked';
+                return `<div class="skin-btn ${selected} ${locked}" 
+                    style="background: ${gradient}"
+                    onclick="selectSkin('${skin.id}')"
+                    title="${skin.name}${skin.unlocked ? '' : ' (未解锁)'}"></div>`;
+            }).join('');
+        }
+        
+        function selectSkin(skinId) {
+            if (!snakeSkins[skinId].unlocked) {
+                // 播放锁定音效
+                playSound('turn');
+                return;
+            }
+            currentSkin = skinId;
+            localStorage.setItem('snakeCurrentSkin', currentSkin);
+            renderSkinSelector();
+        }
+        
+        function getSkinColors() {
+            return snakeSkins[currentSkin] ? snakeSkins[currentSkin].colors : snakeSkins.classic.colors;
         }
         
         // 成就系统
@@ -1136,6 +1397,12 @@
         }
         
         function initGame() {
+            // 重置单局统计
+            sessionStats.startTime = Date.now();
+            sessionStats.maxCombo = 0;
+            sessionStats.powerUpsCollected = 0;
+            achievementProgress.powerUpsCollected = 0;
+            
             snake = [
                 {x: 5, y: 10},
                 {x: 4, y: 10},
@@ -1370,7 +1637,8 @@
                 ctx.stroke();
             }
             
-            // 绘制蛇
+            // 绘制蛇（使用皮肤颜色）
+            const skinColors = getSkinColors();
             snake.forEach((segment, index) => {
                 const gradient = ctx.createRadialGradient(
                     segment.x * gridSize + gridSize/2,
@@ -1381,12 +1649,13 @@
                     gridSize/2
                 );
                 
+                const colorIndex = index % skinColors.length;
                 if (index === 0) {
-                    gradient.addColorStop(0, '#00ff88');
-                    gradient.addColorStop(1, '#00cc6a');
+                    gradient.addColorStop(0, skinColors[0]);
+                    gradient.addColorStop(1, skinColors[Math.min(1, skinColors.length - 1)]);
                 } else {
-                    gradient.addColorStop(0, '#00dd77');
-                    gradient.addColorStop(1, '#00aa55');
+                    gradient.addColorStop(0, skinColors[colorIndex]);
+                    gradient.addColorStop(1, skinColors[Math.min(colorIndex + 1, skinColors.length - 1)]);
                 }
                 
                 ctx.fillStyle = gradient;
@@ -1565,8 +1834,22 @@
                 if (now - lastEatTime < 3000) {
                     combo++;
                     if (combo >= 2) {
-                        document.getElementById('comboDisplay').style.display = 'block';
-                        document.getElementById('comboCount').textContent = combo;
+                        const comboEl = document.getElementById('comboDisplay');
+                        const comboCountEl = document.getElementById('comboCount');
+                        comboEl.style.display = 'block';
+                        comboCountEl.textContent = combo;
+                        
+                        // 连击特效
+                        comboEl.classList.remove('combo-pop');
+                        void comboEl.offsetWidth; // 触发重绘
+                        comboEl.classList.add('combo-pop');
+                        
+                        // 根据连击数改变颜色
+                        if (combo >= 10) {
+                            comboEl.style.background = 'linear-gradient(145deg, #ffd700, #ffaa00)';
+                        } else if (combo >= 5) {
+                            comboEl.style.background = 'linear-gradient(145deg, #ff6b6b, #ee5a5a)';
+                        }
                     }
                 } else {
                     combo = 0;
@@ -1657,6 +1940,12 @@
             if (gameTimerInterval) clearInterval(gameTimerInterval); // 停止游戏计时器
             isGameRunning = false;
             
+            // 记录单局统计
+            sessionStats.endTime = Date.now();
+            sessionStats.finalScore = score;
+            sessionStats.finalLength = snake.length;
+            if (combo > sessionStats.maxCombo) sessionStats.maxCombo = combo;
+            
             // 更新成就进度
             achievementProgress.snakeLength = snake.length;
             if (currentGameMode === 'survival') achievementProgress.survivalScore = Math.max(achievementProgress.survivalScore, score);
@@ -1664,6 +1953,15 @@
             
             // 检查成就
             checkAchievements();
+            
+            // 更新总统计数据
+            gameStats.totalScore += score;
+            gameStats.gamesPlayed++;
+            if (score > gameStats.highScore) gameStats.highScore = score;
+            if (sessionStats.maxCombo > gameStats.maxCombo) gameStats.maxCombo = sessionStats.maxCombo;
+            gameStats.totalPowerUps += achievementProgress.powerUpsCollected;
+            gameStats.achievementsUnlocked = Object.values(achievements).filter(a => a.unlocked).length;
+            localStorage.setItem('snakeStats', JSON.stringify(gameStats));
             
             // 屏幕震动效果
             canvas.classList.add('shake');
@@ -1678,6 +1976,15 @@
                 localStorage.setItem('snakeHighScore', highScore);
                 document.getElementById('highScore').textContent = highScore;
             }
+            
+            // 更新游戏结束界面统计
+            document.getElementById('statScore').textContent = score;
+            document.getElementById('statHighScore').textContent = highScore;
+            document.getElementById('statLength').textContent = snake.length;
+            document.getElementById('statCombo').textContent = sessionStats.maxCombo + 'x';
+            const gameTime = Math.floor((sessionStats.endTime - sessionStats.startTime) / 1000);
+            document.getElementById('statTime').textContent = gameTime + 's';
+            document.getElementById('statPowerUps').textContent = achievementProgress.powerUpsCollected;
             
             document.getElementById('finalScore').textContent = score;
             document.getElementById('finalHighScore').textContent = highScore;
