@@ -283,16 +283,26 @@
             display: flex;
             gap: 10px;
             z-index: 50;
+            pointer-events: none;
         }
         
         .power-up-badge {
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #fff;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #667eea;
             border-radius: 10px;
-            padding: 8px 15px;
+            padding: 10px 16px;
             color: white;
-            font-size: 14px;
+            font-size: 15px;
+            font-weight: bold;
             animation: fadeIn 0.3s ease-out;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .power-up-badge.critical {
+            border-color: #ff4444;
+            background: rgba(255, 68, 68, 0.3);
+            animation: pulse 0.5s ease-in-out infinite;
         }
         
         @keyframes fadeIn {
@@ -535,68 +545,100 @@
         }
         
         // 背景音乐 - 轻松的 ambient 音乐
+        let bgmIntervalId = null;
+        
         function initBGM() {
             if (!soundSettings.enabled || isBGMPlaying) return;
+            
+            // 确保音频上下文已初始化
             initAudio();
             
+            // 停止之前的 BGM
             stopBGM();
-            bgmGain = audioCtx.createGain();
-            bgmGain.gain.value = soundSettings.bgmVolume;
-            bgmGain.connect(audioCtx.destination);
             
-            // 创建和弦进行（C - G - Am - F）
-            const chordProgression = [
-                [261.63, 329.63, 392.00],  // C major
-                [392.00, 493.88, 587.33],  // G major
-                [440.00, 523.25, 659.25],  // A minor
-                [349.23, 440.00, 523.25]   // F major
-            ];
-            
-            let chordIndex = 0;
-            const chordDuration = 2000; // 每个和弦 2 秒
-            
-            function playChord() {
-                if (!isBGMPlaying) return;
-                const chord = chordProgression[chordIndex];
-                chord.forEach((freq, i) => {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.value = freq;
-                    gain.gain.setValueAtTime(0, audioCtx.currentTime);
-                    gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.1);
-                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + chordDuration/1000);
-                    osc.connect(gain);
-                    gain.connect(bgmGain);
-                    osc.start(audioCtx.currentTime);
-                    osc.stop(audioCtx.currentTime + chordDuration/1000);
-                    bgmOscillators.push(osc);
-                });
-                chordIndex = (chordIndex + 1) % chordProgression.length;
-            }
-            
-            // 每 2 秒播放一个和弦
-            playChord();
-            const bgmInterval = setInterval(() => {
-                if (!isBGMPlaying) {
-                    clearInterval(bgmInterval);
-                    return;
+            try {
+                bgmGain = audioCtx.createGain();
+                bgmGain.gain.value = soundSettings.bgmVolume;
+                bgmGain.connect(audioCtx.destination);
+                
+                // 创建和弦进行（C - G - Am - F）
+                const chordProgression = [
+                    [261.63, 329.63, 392.00],  // C major
+                    [392.00, 493.88, 587.33],  // G major
+                    [440.00, 523.25, 659.25],  // A minor
+                    [349.23, 440.00, 523.25]   // F major
+                ];
+                
+                let chordIndex = 0;
+                const chordDuration = 2000; // 每个和弦 2 秒
+                
+                function playChord() {
+                    if (!isBGMPlaying) return;
+                    
+                    const chord = chordProgression[chordIndex];
+                    const now = audioCtx.currentTime;
+                    
+                    chord.forEach((freq, i) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        
+                        osc.type = 'sine';
+                        osc.frequency.value = freq;
+                        
+                        // 平滑的包络
+                        gain.gain.setValueAtTime(0, now);
+                        gain.gain.linearRampToValueAtTime(0.08, now + 0.2);
+                        gain.gain.linearRampToValueAtTime(0.08, now + chordDuration/1000 - 0.2);
+                        gain.gain.linearRampToValueAtTime(0, now + chordDuration/1000);
+                        
+                        osc.connect(gain);
+                        gain.connect(bgmGain);
+                        osc.start(now);
+                        osc.stop(now + chordDuration/1000);
+                        bgmOscillators.push(osc);
+                    });
+                    
+                    chordIndex = (chordIndex + 1) % chordProgression.length;
                 }
+                
+                // 立即播放第一个和弦
                 playChord();
-            }, chordDuration);
-            
-            isBGMPlaying = true;
+                
+                // 每 2 秒播放一个和弦
+                bgmIntervalId = setInterval(() => {
+                    if (!isBGMPlaying) {
+                        clearInterval(bgmIntervalId);
+                        bgmIntervalId = null;
+                        return;
+                    }
+                    playChord();
+                }, chordDuration);
+                
+                isBGMPlaying = true;
+            } catch (e) {
+                console.warn('BGM 初始化失败:', e);
+            }
         }
         
         function stopBGM() {
+            // 停止所有振荡器
             bgmOscillators.forEach(osc => {
                 try { osc.stop(); } catch(e) {}
             });
             bgmOscillators = [];
+            
+            // 断开增益节点
             if (bgmGain) {
                 bgmGain.disconnect();
                 bgmGain = null;
             }
+            
+            // 清除定时器
+            if (bgmIntervalId) {
+                clearInterval(bgmIntervalId);
+                bgmIntervalId = null;
+            }
+            
             isBGMPlaying = false;
         }
         
@@ -711,7 +753,14 @@
         }
         
         function createParticles(x, y, color, count = 8) {
-            for (let i = 0; i < count; i++) {
+            // 限制粒子总数，防止性能问题
+            const maxParticles = 200;
+            const availableSlots = maxParticles - particles.length;
+            const actualCount = Math.min(count, availableSlots);
+            
+            if (actualCount <= 0) return;
+            
+            for (let i = 0; i < actualCount; i++) {
                 particles.push({
                     x: x * gridSize + gridSize / 2,
                     y: y * gridSize + gridSize / 2,
@@ -790,6 +839,8 @@
         let isWallPassThrough = false;
         let lastUpdateTime = 0;
         let foodGlowPhase = 0; // 食物发光动画相位
+        let powerUpIndicatorCache = ''; // 缓存道具指示器 HTML，避免频繁重绘
+        let powerUpUpdateInterval = null; // 道具倒计时更新定时器
         
         // ==================== 定时器管理（修复内存泄漏）====================
         let activeTimers = [];
@@ -950,21 +1001,53 @@
             }
         }
         
-        function updatePowerUpIndicator() {
+        function updatePowerUpIndicator(force = false) {
             const container = document.getElementById('powerUpIndicator');
             const now = Date.now();
+            
+            // 清理过期的道具效果
+            const beforeCount = activePowerUps.length;
             activePowerUps = activePowerUps.filter(p => p.endTime > now);
             
+            // 只有在状态变化或强制更新时才重绘 DOM
             if (activePowerUps.length === 0) {
-                container.innerHTML = '';
+                if (powerUpIndicatorCache !== '') {
+                    container.innerHTML = '';
+                    powerUpIndicatorCache = '';
+                }
                 return;
             }
             
-            container.innerHTML = activePowerUps.map(p => {
+            // 生成新的 HTML
+            const newHtml = activePowerUps.map(p => {
                 const config = powerUpTypes[p.type];
                 const remaining = Math.ceil((p.endTime - now) / 1000);
-                return `<div class="power-up-badge">${config.icon} ${remaining}s</div>`;
+                const criticalClass = remaining <= 3 ? ' critical' : '';
+                return `<div class="power-up-badge${criticalClass}">${config.icon} ${remaining}s</div>`;
             }).join('');
+            
+            // 只在内容变化时更新 DOM
+            if (force || newHtml !== powerUpIndicatorCache) {
+                container.innerHTML = newHtml;
+                powerUpIndicatorCache = newHtml;
+            }
+        }
+        
+        // 启动道具倒计时更新器（每秒更新一次，避免闪烁）
+        function startPowerUpTimer() {
+            if (powerUpUpdateInterval) clearInterval(powerUpUpdateInterval);
+            powerUpUpdateInterval = setInterval(() => {
+                if (isGameRunning && !isPaused && activePowerUps.length > 0) {
+                    updatePowerUpIndicator();
+                }
+            }, 1000);
+        }
+        
+        function stopPowerUpTimer() {
+            if (powerUpUpdateInterval) {
+                clearInterval(powerUpUpdateInterval);
+                powerUpUpdateInterval = null;
+            }
         }
         
         function draw() {
@@ -1187,8 +1270,7 @@
                 vibrate([50, 30, 50]);
             }
             
-            // 更新道具指示器
-            updatePowerUpIndicator();
+            // 注意：道具指示器现在由独立的定时器更新，不在这里调用
         }
         
         function gameStep(currentTime) {
@@ -1219,6 +1301,7 @@
             cancelAnimationFrame(animationFrame);
             clearInterval(gameLoop);
             clearAllTimers();
+            stopPowerUpTimer(); // 停止道具倒计时更新器
             isGameRunning = false;
             
             // 屏幕震动效果
@@ -1249,6 +1332,7 @@
             document.getElementById('btnPause').textContent = '暂停';
             document.getElementById('gameSpeed').textContent = Math.round(currentGameSpeed);
             animationFrame = requestAnimationFrame(gameStep);
+            startPowerUpTimer(); // 启动道具倒计时更新器
         }
         
         function togglePause() {
@@ -1260,6 +1344,11 @@
             
             if (isPaused) {
                 playSound('pause');
+                stopBGM(); // 暂停时停止 BGM
+            } else {
+                if (soundSettings.enabled && !isBGMPlaying) {
+                    initBGM(); // 继续时恢复 BGM
+                }
             }
         }
         
@@ -1268,7 +1357,9 @@
             document.getElementById('pauseMenu').style.display = 'none';
             document.getElementById('btnPause').textContent = '暂停';
             playSound('start'); // 播放继续音效
-            initBGM(); // 恢复背景音乐
+            if (soundSettings.enabled && !isBGMPlaying) {
+                initBGM(); // 恢复背景音乐
+            }
         }
         
         function restartGame() {
@@ -1294,6 +1385,7 @@
             cancelAnimationFrame(animationFrame);
             clearInterval(gameLoop);
             clearAllTimers();
+            stopPowerUpTimer(); // 停止道具倒计时更新器
             isGameRunning = false;
             isPaused = false;
             stopBGM(); // 停止背景音乐
@@ -1385,6 +1477,10 @@
                     break;
                 case 'Escape':
                     if (isGameRunning) togglePause();
+                    break;
+                case 'm': case 'M':
+                    // M 键静音快捷键
+                    toggleSound();
                     break;
             }
         });
